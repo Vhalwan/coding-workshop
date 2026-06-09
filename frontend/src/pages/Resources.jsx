@@ -2,19 +2,22 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress,
-  LinearProgress, Chip, Tooltip, Divider
+  LinearProgress, Chip, Tooltip, Divider, MenuItem, List, ListItem, ListItemText
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { resourcesApi } from '../services/api';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import { resourcesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
 
 const EMPTY = { name: '', email: '', role: '', department: '', capacity_hours_per_week: 40 };
+const EMPTY_ALLOC = { project_id: '', hours_per_week: '', start_date: '', end_date: '' };
 
 export default function Resources() {
   const { user } = useAuth();
   const [resources, setResources] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
@@ -22,13 +25,24 @@ export default function Resources() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
+  // Allocation management state
+  const [allocOpen, setAllocOpen] = useState(false);
+  const [allocResource, setAllocResource] = useState(null);
+  const [allocations, setAllocations] = useState([]);
+  const [allocLoading, setAllocLoading] = useState(false);
+  const [allocForm, setAllocForm] = useState(EMPTY_ALLOC);
+  const [allocSaving, setAllocSaving] = useState(false);
+
   const canEdit = ['admin', 'manager'].includes(user?.role);
 
   const load = () => resourcesApi.getAll()
     .then(d => setResources(d.resources || []))
     .catch(e => setError(e.message)).finally(() => setLoading(false));
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    projectsApi.getAll().then(d => setProjects(d.projects || [])).catch(() => {});
+  }, []);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
   const openEdit = (r) => { setEditing(r); setForm({ ...r }); setOpen(true); };
@@ -49,7 +63,56 @@ export default function Resources() {
     try { await resourcesApi.delete(id); load(); } catch (e) { setError(e.message); }
   };
 
+  const loadAllocations = (resourceId) =>
+    resourcesApi.getAllocations({ resource_id: resourceId })
+      .then(d => setAllocations(d.allocations || []))
+      .catch(e => setError(e.message));
+
+  const openAllocations = async (resource) => {
+    setAllocResource(resource);
+    setAllocForm(EMPTY_ALLOC);
+    setAllocations([]);
+    setAllocOpen(true);
+    setAllocLoading(true);
+    await loadAllocations(resource.id);
+    setAllocLoading(false);
+  };
+
+  const addAllocation = async () => {
+    const hours = Number(allocForm.hours_per_week);
+    if (!allocForm.project_id || !hours || hours <= 0) return;
+    setAllocSaving(true);
+    try {
+      const proj = projects.find(p => p.id === allocForm.project_id);
+      await resourcesApi.createAllocation({
+        resource_id: allocResource.id,
+        project_id: allocForm.project_id,
+        project_name: proj?.name || null,
+        hours_per_week: hours,
+        start_date: allocForm.start_date || null,
+        end_date: allocForm.end_date || null,
+      });
+      setAllocForm(EMPTY_ALLOC);
+      await loadAllocations(allocResource.id);
+      load();
+    } catch (e) { setError(e.message); }
+    finally { setAllocSaving(false); }
+  };
+
+  const removeAllocation = async (id) => {
+    try {
+      await resourcesApi.deleteAllocation(id);
+      await loadAllocations(allocResource.id);
+      load();
+    } catch (e) { setError(e.message); }
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
+
+  const allocatedInDialog = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
+  const dialogCapacity = allocResource?.capacity_hours_per_week || 0;
+  const dialogAvailable = dialogCapacity - allocatedInDialog;
+  const wouldOverallocate = Number(allocForm.hours_per_week) > dialogAvailable;
 
   return (
     <Box>
@@ -74,12 +137,15 @@ export default function Resources() {
                       <Typography fontWeight={700}>{r.name}</Typography>
                       <Typography variant="body2" color="text.secondary">{r.email}</Typography>
                     </Box>
-                    {canEdit && (
-                      <Box>
-                        <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(r)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                      </Box>
-                    )}
+                    <Box>
+                      <Tooltip title="Manage allocations"><IconButton size="small" onClick={() => openAllocations(r)}><EventNoteIcon fontSize="small" /></IconButton></Tooltip>
+                      {canEdit && (
+                        <>
+                          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(r)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                        </>
+                      )}
+                    </Box>
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
@@ -112,6 +178,79 @@ export default function Resources() {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.name.trim() || !form.email.trim()}>{saving ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={allocOpen} onClose={() => setAllocOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Allocations — {allocResource?.name}
+          <Typography variant="body2" color={dialogAvailable < 0 ? 'error.main' : 'text.secondary'}>
+            {allocatedInDialog}/{dialogCapacity}h allocated · {dialogAvailable}h available
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          {allocLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>
+          ) : (
+            <>
+              {allocations.length === 0 && <Typography color="text.secondary" sx={{ mb: 2 }}>No allocations yet.</Typography>}
+              <List dense>
+                {allocations.map(a => (
+                  <ListItem
+                    key={a.id}
+                    divider
+                    secondaryAction={canEdit && (
+                      <Tooltip title="Remove allocation">
+                        <IconButton edge="end" size="small" color="error" onClick={() => removeAllocation(a.id)}><DeleteIcon fontSize="small" /></IconButton>
+                      </Tooltip>
+                    )}
+                  >
+                    <ListItemText
+                      primary={`${a.project_name || a.project_id} — ${a.hours_per_week}h/week`}
+                      secondary={a.start_date || a.end_date ? `${a.start_date || '—'} → ${a.end_date || '—'}` : null}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
+              {canEdit && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Add allocation</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      select label="Project *" value={allocForm.project_id}
+                      onChange={e => setAllocForm(f => ({ ...f, project_id: e.target.value }))} fullWidth
+                      helperText={projects.length === 0 ? 'No projects available — create a project first.' : ''}
+                    >
+                      {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+                    </TextField>
+                    <TextField
+                      label="Hours / week *" type="number" value={allocForm.hours_per_week}
+                      onChange={e => setAllocForm(f => ({ ...f, hours_per_week: e.target.value }))} fullWidth
+                      error={wouldOverallocate}
+                      helperText={wouldOverallocate ? `Exceeds available capacity (${dialogAvailable}h)` : ''}
+                    />
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
+                      <TextField label="End date" type="date" value={allocForm.end_date} onChange={e => setAllocForm(f => ({ ...f, end_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
+                    </Box>
+                  </Box>
+                </>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAllocOpen(false)}>Close</Button>
+          {canEdit && (
+            <Button
+              variant="contained" startIcon={<AddIcon />} onClick={addAllocation}
+              disabled={allocSaving || !allocForm.project_id || !Number(allocForm.hours_per_week)}
+            >
+              {allocSaving ? 'Adding...' : 'Add Allocation'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
