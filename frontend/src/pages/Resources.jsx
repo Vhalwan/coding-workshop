@@ -33,7 +33,8 @@ export default function Resources() {
   const [allocForm, setAllocForm] = useState(EMPTY_ALLOC);
   const [allocSaving, setAllocSaving] = useState(false);
 
-  const canEdit = ['admin', 'manager'].includes(user?.role);
+  const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
+  const canDelete = ['admin', 'manager'].includes(user?.role);
 
   const load = () => resourcesApi.getAll()
     .then(d => setResources(d.resources || []))
@@ -80,7 +81,9 @@ export default function Resources() {
 
   const addAllocation = async () => {
     const hours = Number(allocForm.hours_per_week);
-    if (!allocForm.project_id || !hours || hours <= 0) return;
+    const allocated = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
+    const available = (allocResource?.capacity_hours_per_week || 0) - allocated;
+    if (!allocForm.project_id || !hours || hours <= 0 || hours > available) return;
     setAllocSaving(true);
     try {
       const proj = projects.find(p => p.id === allocForm.project_id);
@@ -118,7 +121,7 @@ export default function Resources() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>Resources</Typography>
-        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Resource</Button>}
+        {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Resource</Button>}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -139,10 +142,10 @@ export default function Resources() {
                     </Box>
                     <Box>
                       <Tooltip title="Manage allocations"><IconButton size="small" onClick={() => openAllocations(r)}><EventNoteIcon fontSize="small" /></IconButton></Tooltip>
-                      {canEdit && (
+                      {canWrite && (
                         <>
                           <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(r)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                          {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                         </>
                       )}
                     </Box>
@@ -199,7 +202,7 @@ export default function Resources() {
                   <ListItem
                     key={a.id}
                     divider
-                    secondaryAction={canEdit && (
+                    secondaryAction={canDelete && (
                       <Tooltip title="Remove allocation">
                         <IconButton edge="end" size="small" color="error" onClick={() => removeAllocation(a.id)}><DeleteIcon fontSize="small" /></IconButton>
                       </Tooltip>
@@ -213,7 +216,7 @@ export default function Resources() {
                 ))}
               </List>
 
-              {canEdit && (
+              {canWrite && (
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Add allocation</Typography>
@@ -243,10 +246,10 @@ export default function Resources() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAllocOpen(false)}>Close</Button>
-          {canEdit && (
+          {canWrite && (
             <Button
               variant="contained" startIcon={<AddIcon />} onClick={addAllocation}
-              disabled={allocSaving || !allocForm.project_id || !Number(allocForm.hours_per_week)}
+              disabled={allocSaving || !allocForm.project_id || !Number(allocForm.hours_per_week) || wouldOverallocate}
             >
               {allocSaving ? 'Adding...' : 'Add Allocation'}
             </Button>

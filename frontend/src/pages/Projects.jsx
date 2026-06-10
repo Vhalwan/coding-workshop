@@ -27,7 +27,8 @@ export default function Projects() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  const canEdit = ['admin', 'manager'].includes(user?.role);
+  const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
+  const canDelete = ['admin', 'manager'].includes(user?.role);
 
   const load = () => projectsApi.getAll(filter || undefined)
     .then(d => setProjects(d.projects || []))
@@ -69,7 +70,7 @@ export default function Projects() {
             <MenuItem value="">All</MenuItem>
             {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </TextField>
-          {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>New Project</Button>}
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>New Project</Button>}
         </Box>
       </Box>
 
@@ -84,10 +85,10 @@ export default function Projects() {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography fontWeight={700} variant="h6" noWrap sx={{ flex: 1 }}>{p.name}</Typography>
-                  {canEdit && (
+                  {canWrite && (
                     <Box>
                       <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                      {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                     </Box>
                   )}
                 </Box>

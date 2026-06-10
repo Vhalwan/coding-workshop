@@ -55,6 +55,12 @@ def test_viewer_cannot_delete():
         r = svc_mod.handler(ev("DELETE", "/projects/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", token=token))
         assert r["statusCode"] == 403
 
+def test_viewer_cannot_update():
+    token = auth_mod.generate_token({"id": "u2", "email": "v@b.com", "role": "viewer"})
+    with patch.object(svc_mod, "init_db"):
+        r = svc_mod.handler(ev("PUT", "/projects/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", {"name": "x"}, token=token))
+        assert r["statusCode"] == 403
+
 def test_cors_headers():
     with patch.object(svc_mod, "init_db"):
         assert "Access-Control-Allow-Origin" in svc_mod.handler(ev("OPTIONS", "/projects"))["headers"]

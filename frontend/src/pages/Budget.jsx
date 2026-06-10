@@ -24,7 +24,8 @@ export default function Budget() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  const canEdit = ['admin', 'manager'].includes(user?.role);
+  const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
+  const canDelete = ['admin', 'manager'].includes(user?.role);
 
   const load = () => Promise.all([
     budgetApi.getAll(filterProject ? { project_id: filterProject } : {}),
@@ -63,7 +64,7 @@ export default function Budget() {
             <MenuItem value="">All Projects</MenuItem>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }}>Add Entry</Button>}
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }}>Add Entry</Button>}
         </Box>
       </Box>
 
@@ -101,7 +102,7 @@ export default function Budget() {
               <TableCell>Description</TableCell>
               <TableCell>Type</TableCell>
               <TableCell align="right">Amount</TableCell>
-              {canEdit && <TableCell align="right">Actions</TableCell>}
+              {canDelete && <TableCell align="right">Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -118,7 +119,7 @@ export default function Budget() {
                 <TableCell align="right" sx={{ fontWeight: 600, color: e.type === 'expense' ? 'error.main' : 'success.main' }}>
                   {e.type === 'expense' ? '-' : '+'}${e.amount.toLocaleString()}
                 </TableCell>
-                {canEdit && (
+                {canDelete && (
                   <TableCell align="right">
                     <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(e.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                   </TableCell>

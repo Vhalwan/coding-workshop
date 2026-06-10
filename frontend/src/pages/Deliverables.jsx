@@ -28,6 +28,7 @@ export default function Deliverables() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
+  const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
   const canDelete = ['admin', 'manager'].includes(user?.role);
 
   const load = () => Promise.all([
@@ -74,7 +75,7 @@ export default function Deliverables() {
             <MenuItem value="">All</MenuItem>
             {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </TextField>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Deliverable</Button>
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Deliverable</Button>}
         </Box>
       </Box>
 
@@ -106,7 +107,7 @@ export default function Deliverables() {
                 <TableCell>{d.assignee_name || '—'}</TableCell>
                 <TableCell>{d.due_date || '—'}</TableCell>
                 <TableCell align="right">
-                  <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(d)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                  {canWrite && <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(d)}><EditIcon fontSize="small" /></IconButton></Tooltip>}
                   {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(d.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                 </TableCell>
               </TableRow>
