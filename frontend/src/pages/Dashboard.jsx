@@ -76,7 +76,7 @@ export default function Dashboard() {
           <StatCard title="Deliverables Done" value={`${completedDeliverables}/${deliverables.length}`} icon={<CheckCircleIcon fontSize="inherit" />} color="success.main" onClick={() => navigate('/deliverables')} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard title="Over-allocated" value={overAllocated} icon={<PeopleIcon fontSize="inherit" />} color="warning.main" onClick={() => navigate('/resources')} />
+          <StatCard title="Over-allocated" value={overAllocated} icon={<PeopleIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/resources')} />
         </Grid>
       </Grid>
 
@@ -136,22 +136,31 @@ export default function Dashboard() {
             <CardContent>
               <Typography variant="h6" fontWeight={600} mb={2}>Team Allocation</Typography>
               {resources.length === 0 && <Typography color="text.secondary">No resources yet.</Typography>}
-              {resources.slice(0, 5).map(r => (
-                <Box key={r.id} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
-                    <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-word', minWidth: 0 }}>{r.name}</Typography>
-                    <Typography variant="body2" color={r.allocated_hours > r.capacity_hours_per_week ? 'error.main' : 'text.secondary'}>
-                      {r.allocated_hours}/{r.capacity_hours_per_week}h
-                    </Typography>
+              {resources.slice(0, 5).map(r => {
+                const over = r.allocated_hours > r.capacity_hours_per_week;
+                const overage = r.allocated_hours - r.capacity_hours_per_week;
+                return (
+                  <Box key={r.id} sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-word', minWidth: 0 }}>{r.name}</Typography>
+                        {over && (
+                          <Chip label={`⚠ +${overage}h`} size="small" color="error" sx={{ flexShrink: 0, height: 20, '& .MuiChip-label': { px: 1, fontSize: '0.7rem' } }} />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color={over ? 'error.main' : 'text.secondary'}>
+                        {r.allocated_hours}/{r.capacity_hours_per_week}h
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100)}
+                      color={over ? 'error' : 'success'}
+                      sx={{ borderRadius: 1 }}
+                    />
                   </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100)}
-                    color={r.allocated_hours > r.capacity_hours_per_week ? 'error' : 'success'}
-                    sx={{ borderRadius: 1 }}
-                  />
-                </Box>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </Grid>

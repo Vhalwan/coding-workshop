@@ -79,9 +79,7 @@ export default function Resources() {
 
   const addAllocation = async () => {
     const hours = Number(allocForm.hours_per_week);
-    const allocated = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
-    const available = (allocResource?.capacity_hours_per_week || 0) - allocated;
-    if (!allocForm.project_id || !hours || hours <= 0 || hours > available) return;
+    if (!allocForm.project_id || !hours || hours <= 0) return;
     setAllocSaving(true);
     try {
       const proj = projects.find(p => p.id === allocForm.project_id);
@@ -113,7 +111,11 @@ export default function Resources() {
   const allocatedInDialog = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
   const dialogCapacity = allocResource?.capacity_hours_per_week || 0;
   const dialogAvailable = dialogCapacity - allocatedInDialog;
-  const wouldOverallocate = Number(allocForm.hours_per_week) > dialogAvailable;
+  const dialogOverage = allocatedInDialog - dialogCapacity;
+  const dialogIsOver = dialogOverage > 0;
+  const newAllocHours = Number(allocForm.hours_per_week) || 0;
+  const wouldOverallocate = newAllocHours > dialogAvailable;
+  const projectedOverage = allocatedInDialog + newAllocHours - dialogCapacity;
 
   return (
     <Box>
@@ -129,10 +131,16 @@ export default function Resources() {
         {resources.map(r => {
           const pct = Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100);
           const over = r.allocated_hours > r.capacity_hours_per_week;
+          const overage = r.allocated_hours - r.capacity_hours_per_week;
           return (
             <Grid size={{ xs: 12, md: 6, xl: 4 }} key={r.id}>
               <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
                 <CardContent sx={{ minWidth: 0 }}>
+                  {over && (
+                    <Alert severity="error" icon={false} sx={{ mb: 1.5, py: 0.5, fontWeight: 600, '& .MuiAlert-message': { py: 0.25 } }}>
+                      ⚠ Over-allocated by {overage}h
+                    </Alert>
+                  )}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
                     <Box sx={{ minWidth: 0, flex: '1 1 auto' }}>
                       <Typography fontWeight={700} sx={{ wordBreak: 'break-word' }}>{r.name}</Typography>
@@ -156,7 +164,7 @@ export default function Resources() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
                     <Typography variant="caption">Allocation</Typography>
                     <Typography variant="caption" color={over ? 'error.main' : 'text.secondary'} sx={{ textAlign: 'right' }}>
-                      {r.allocated_hours}/{r.capacity_hours_per_week}h/week {over && '⚠ Over'}
+                      {r.allocated_hours}/{r.capacity_hours_per_week}h/week
                     </Typography>
                   </Box>
                   <LinearProgress variant="determinate" value={pct} color={over ? 'error' : 'success'} sx={{ borderRadius: 1, height: 8 }} />
@@ -194,6 +202,11 @@ export default function Resources() {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>
           ) : (
             <>
+              {dialogIsOver && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {allocResource?.name} is over-allocated by {dialogOverage}h/week ({allocatedInDialog}h allocated vs {dialogCapacity}h capacity).
+                </Alert>
+              )}
               {allocations.length === 0 && <Typography color="text.secondary" sx={{ mb: 2 }}>No allocations yet.</Typography>}
               <List dense>
                 {allocations.map(a => (
@@ -218,6 +231,13 @@ export default function Resources() {
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Add allocation</Typography>
+                  {wouldOverallocate && newAllocHours > 0 && (
+                    <Alert severity="warning" sx={{ mb: 1 }}>
+                      Adding {newAllocHours}h/week will push {allocResource?.name} over capacity by {projectedOverage}h/week
+                      {dialogIsOver ? ` (currently over by ${dialogOverage}h)` : ` (${dialogAvailable}h currently available)`}.
+                      You can still add this allocation.
+                    </Alert>
+                  )}
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
                       select label="Project *" value={allocForm.project_id}
@@ -229,8 +249,12 @@ export default function Resources() {
                     <TextField
                       label="Hours / week *" type="number" value={allocForm.hours_per_week}
                       onChange={e => setAllocForm(f => ({ ...f, hours_per_week: e.target.value }))} fullWidth
-                      error={wouldOverallocate}
-                      helperText={wouldOverallocate ? `Exceeds available capacity (${dialogAvailable}h)` : ''}
+                      error={wouldOverallocate && newAllocHours > 0}
+                      helperText={
+                        wouldOverallocate && newAllocHours > 0
+                          ? `Exceeds available capacity — will be over-allocated by ${projectedOverage}h/week`
+                          : ''
+                      }
                     />
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                       <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
@@ -247,7 +271,7 @@ export default function Resources() {
           {canWrite && (
             <Button
               variant="contained" startIcon={<AddIcon />} onClick={addAllocation}
-              disabled={allocSaving || !allocForm.project_id || !Number(allocForm.hours_per_week) || wouldOverallocate}
+              disabled={allocSaving || !allocForm.project_id || !Number(allocForm.hours_per_week)}
             >
               {allocSaving ? 'Adding...' : 'Add Allocation'}
             </Button>
