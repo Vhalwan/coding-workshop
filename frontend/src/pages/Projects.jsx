@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, MenuItem, IconButton, Alert, CircularProgress, Tooltip
+  DialogContent, DialogActions, TextField, MenuItem, IconButton, Alert, CircularProgress, Tooltip, InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
@@ -23,6 +24,7 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -66,27 +68,58 @@ export default function Projects() {
     catch (e) { setError(e.message); }
   };
 
+  const query = search.trim().toLowerCase();
+  const filteredProjects = query
+    ? projects.filter(p =>
+        (p.name || '').toLowerCase().includes(query) ||
+        (p.description || '').toLowerCase().includes(query)
+      )
+    : projects;
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>Projects</Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField select size="small" label="Filter by status" value={filter} onChange={e => setFilter(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
-            <MenuItem value="">All</MenuItem>
-            {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
-          </TextField>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>Projects</Typography>
           {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>New Project</Button>}
         </Box>
+        <TextField
+          size="small"
+          placeholder="Search projects..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          fullWidth
+          sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              endAdornment: search ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearch('')} aria-label="Clear search" edge="end">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            },
+          }}
+        />
+        <TextField select size="small" label="Filter by status" value={filter} onChange={e => setFilter(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 160 } }}>
+          <MenuItem value="">All</MenuItem>
+          {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
+        </TextField>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-      {projects.length === 0 && <Typography color="text.secondary">No projects found. Create your first project!</Typography>}
+      {filteredProjects.length === 0 && (
+        <Typography color="text.secondary">
+          {query ? 'No projects match your search' : 'No projects found. Create your first project!'}
+        </Typography>
+      )}
 
       <Grid container spacing={3}>
-        {projects.map(p => (
+        {filteredProjects.map(p => (
           <Grid size={{ xs: 12, md: 6, xl: 4 }} key={p.id}>
             <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
               <CardContent sx={{ minWidth: 0 }}>

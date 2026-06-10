@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Chip, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, IconButton, Alert,
-  CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip
+  CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { deliverablesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
@@ -25,6 +26,7 @@ export default function Deliverables() {
   const [error, setError] = useState('');
   const [filterProject, setFilterProject] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -112,12 +114,42 @@ export default function Deliverables() {
 
   const projectName = (id) => projects.find(p => p.id === id)?.name || id;
 
+  const query = search.trim().toLowerCase();
+  const filteredItems = query
+    ? items.filter(d =>
+        (d.name || '').toLowerCase().includes(query) ||
+        (d.assignee_name || '').toLowerCase().includes(query)
+      )
+    : items;
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>Deliverables</Typography>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>Deliverables</Typography>
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Deliverable</Button>}
+        </Box>
+        <TextField
+          size="small"
+          placeholder="Search deliverables..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          fullWidth
+          sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              endAdornment: search ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearch('')} aria-label="Clear search" edge="end">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            },
+          }}
+        />
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField select size="small" label="Project" value={filterProject} onChange={e => setFilterProject(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
             <MenuItem value="">All Projects</MenuItem>
@@ -127,7 +159,6 @@ export default function Deliverables() {
             <MenuItem value="">All</MenuItem>
             {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </TextField>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Deliverable</Button>}
         </Box>
       </Box>
 
@@ -148,10 +179,14 @@ export default function Deliverables() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.length === 0 && (
-              <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>No deliverables found. Create one!</TableCell></TableRow>
+            {filteredItems.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  {query ? 'No deliverables match your search' : 'No deliverables found. Create one!'}
+                </TableCell>
+              </TableRow>
             )}
-            {items.map(d => (
+            {filteredItems.map(d => (
               <TableRow key={d.id} hover>
                 <TableCell><Typography fontWeight={500}>{d.name}</Typography>{d.description && <Typography variant="caption" color="text.secondary">{d.description}</Typography>}</TableCell>
                 <TableCell>{projectName(d.project_id)}</TableCell>

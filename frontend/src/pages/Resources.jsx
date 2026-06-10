@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress,
-  LinearProgress, Chip, Tooltip, Divider, MenuItem, List, ListItem, ListItemText
+  LinearProgress, Chip, Tooltip, Divider, MenuItem, List, ListItem, ListItemText, InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { resourcesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
@@ -20,6 +21,7 @@ export default function Resources() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -106,6 +108,16 @@ export default function Resources() {
     } catch (e) { setError(e.message); }
   };
 
+  const query = search.trim().toLowerCase();
+  const filteredResources = query
+    ? resources.filter(r =>
+        (r.name || '').toLowerCase().includes(query) ||
+        (r.email || '').toLowerCase().includes(query) ||
+        (r.role || '').toLowerCase().includes(query) ||
+        (r.department || '').toLowerCase().includes(query)
+      )
+    : resources;
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   const allocatedInDialog = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
@@ -119,16 +131,40 @@ export default function Resources() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>Resources</Typography>
-        {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Resource</Button>}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Typography variant="h5" fontWeight={700}>Resources</Typography>
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Resource</Button>}
+        </Box>
+        <TextField
+          size="small"
+          placeholder="Search resources..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          fullWidth
+          slotProps={{
+            input: {
+              endAdornment: search ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearch('')} aria-label="Clear search" edge="end">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            },
+          }}
+        />
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {resources.length === 0 && <Typography color="text.secondary">No resources yet. Add team members!</Typography>}
+      {filteredResources.length === 0 && (
+        <Typography color="text.secondary">
+          {query ? 'No resources match your search' : 'No resources yet. Add team members!'}
+        </Typography>
+      )}
 
       <Grid container spacing={3}>
-        {resources.map(r => {
+        {filteredResources.map(r => {
           const pct = Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100);
           const over = r.allocated_hours > r.capacity_hours_per_week;
           const overage = r.allocated_hours - r.capacity_hours_per_week;
