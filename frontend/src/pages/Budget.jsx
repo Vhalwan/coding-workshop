@@ -82,7 +82,7 @@ export default function Budget() {
       {summary.length > 0 && (
         <Grid container spacing={3} mb={4}>
           {summary.map(s => (
-            <Grid item xs={12} sm={6} md={4} key={s.project_id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={s.project_id}>
               <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
                 <CardContent>
                   <Typography fontWeight={600} mb={1}>{s.project_name || projectName(s.project_id)}</Typography>
@@ -142,7 +142,7 @@ export default function Budget() {
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add Budget Entry</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField select label="Project *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} fullWidth>
+          <TextField select label="Project *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} fullWidth autoFocus>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -156,7 +156,7 @@ export default function Budget() {
           </Box>
           <TextField label="Amount ($) *" type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} fullWidth />
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth />
-          <TextField label="Date" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
+          <TextField label="Date" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>

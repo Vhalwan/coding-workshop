@@ -43,13 +43,11 @@ def verify_password(password, stored):
 
 def parse_event(event):
     """Normalize API GW v1, v2, and Lambda URL events into method + path."""
-    # v2 / Lambda URL format
     if event.get("version") == "2.0" or "requestContext" in event:
         ctx = event.get("requestContext", {}).get("http", {})
         method = ctx.get("method", "GET").upper()
         path = event.get("rawPath") or ctx.get("path", "/")
     else:
-        # v1 format
         method = event.get("httpMethod", "GET").upper()
         path = event.get("path", "/")
     return method, path
@@ -100,7 +98,6 @@ def handler(event=None, context=None):
         return error(500, "Database initialization failed")
 
     method, path = parse_event(event)
-    # Normalize: strip leading slash, get last segment
     segment = path.strip("/").split("/")[-1] if path.strip("/") else ""
 
     if method == "OPTIONS":

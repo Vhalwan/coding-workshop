@@ -86,7 +86,7 @@ export default function Projects() {
 
       <Grid container spacing={3}>
         {projects.map(p => (
-          <Grid item xs={12} md={6} lg={4} key={p.id}>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }} key={p.id}>
             <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -117,7 +117,7 @@ export default function Projects() {
       <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Project' : 'New Project'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField label="Project Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth />
+          <TextField label="Project Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth multiline rows={3} />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField select label="Status" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} fullWidth>
@@ -128,8 +128,8 @@ export default function Projects() {
             </TextField>
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField label="Start Date" type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
-            <TextField label="End Date" type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
+            <TextField label="Start Date" type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="End Date" type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
           </Box>
           <TextField label="Total Budget ($)" type="number" value={form.budget_total} onChange={e => setForm(f => ({ ...f, budget_total: e.target.value }))} fullWidth />
         </DialogContent>

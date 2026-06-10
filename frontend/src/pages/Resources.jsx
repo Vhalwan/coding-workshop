@@ -24,8 +24,6 @@ export default function Resources() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
-
-  // Allocation management state
   const [allocOpen, setAllocOpen] = useState(false);
   const [allocResource, setAllocResource] = useState(null);
   const [allocations, setAllocations] = useState([]);
@@ -132,7 +130,7 @@ export default function Resources() {
           const pct = Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100);
           const over = r.allocated_hours > r.capacity_hours_per_week;
           return (
-            <Grid item xs={12} sm={6} md={4} key={r.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.id}>
               <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -172,7 +170,7 @@ export default function Resources() {
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Resource' : 'Add Resource'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-          <TextField label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth />
+          <TextField label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
           <TextField label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} fullWidth />
           <TextField label="Role / Title" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} fullWidth />
           <TextField label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} fullWidth />
@@ -235,8 +233,8 @@ export default function Resources() {
                       helperText={wouldOverallocate ? `Exceeds available capacity (${dialogAvailable}h)` : ''}
                     />
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                      <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
-                      <TextField label="End date" type="date" value={allocForm.end_date} onChange={e => setAllocForm(f => ({ ...f, end_date: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
+                      <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+                      <TextField label="End date" type="date" value={allocForm.end_date} onChange={e => setAllocForm(f => ({ ...f, end_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
                     </Box>
                   </Box>
                 </>

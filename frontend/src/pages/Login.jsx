@@ -50,10 +50,10 @@ export default function Login() {
             <TextField fullWidth label="Password" type="password" value={form.password} onChange={set('password')} sx={{ mb: 2 }} required />
             {tab === 1 && (
               <TextField fullWidth select label="Role" value={form.role} onChange={set('role')} sx={{ mb: 2 }}>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="manager">Manager</MenuItem>
                 <MenuItem value="viewer">Viewer</MenuItem>
                 <MenuItem value="contributor">Contributor</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
               </TextField>
             )}
             <Button fullWidth variant="contained" type="submit" disabled={loading} size="large" sx={{ mt: 1 }}>
