@@ -44,6 +44,8 @@ def handler(event=None, context=None):
             e = get_entry_by_id(PG_CONFIG, last)
             return resp(200, {"entry": e}) if e else err(404, "Not found")
         if method == "POST":
+            if user.get("role") == "viewer":
+                return err(403, "Viewers cannot create records")
             body = json.loads(event.get("body") or "{}")
             if not body.get("project_id") or not body.get("category") or body.get("amount") is None:
                 return err(400, "project_id, category, and amount are required")

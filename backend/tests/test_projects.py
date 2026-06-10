@@ -49,6 +49,12 @@ def test_post_missing_name():
         r = svc_mod.handler(ev("POST", "/projects", {"description": "no name"}, tok()))
         assert r["statusCode"] == 400
 
+def test_viewer_cannot_create():
+    token = auth_mod.generate_token({"id": "u2", "email": "v@b.com", "role": "viewer"})
+    with patch.object(svc_mod, "init_db"):
+        r = svc_mod.handler(ev("POST", "/projects", {"name": "x"}, token=token))
+        assert r["statusCode"] == 403
+
 def test_viewer_cannot_delete():
     token = auth_mod.generate_token({"id": "u2", "email": "v@b.com", "role": "viewer"})
     with patch.object(svc_mod, "init_db"):

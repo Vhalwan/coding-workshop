@@ -42,6 +42,8 @@ def handler(event=None, context=None):
             p = get_project_by_id(PG_CONFIG, parts[-1])
             return resp(200, {"project": p}) if p else err(404, "Project not found")
         if method == "POST":
+            if user.get("role") == "viewer":
+                return err(403, "Viewers cannot create records")
             body = json.loads(event.get("body") or "{}")
             if not body.get("name"): return err(400, "name is required")
             body.setdefault("owner_id", user.get("sub")); body.setdefault("owner_name", user.get("email"))

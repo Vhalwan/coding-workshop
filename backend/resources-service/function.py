@@ -42,6 +42,8 @@ def handler(event=None, context=None):
             if method == "GET":
                 return resp(200, {"allocations": get_allocations(PG_CONFIG, resource_id=params.get("resource_id"), project_id=params.get("project_id"))})
             if method == "POST":
+                if user.get("role") == "viewer":
+                    return err(403, "Viewers cannot create records")
                 body = json.loads(event.get("body") or "{}")
                 if not all([body.get("resource_id"), body.get("project_id"), body.get("hours_per_week")]):
                     return err(400, "resource_id, project_id, and hours_per_week are required")
@@ -56,6 +58,8 @@ def handler(event=None, context=None):
             r = get_resource_by_id(PG_CONFIG, last)
             return resp(200, {"resource": r}) if r else err(404, "Not found")
         if method == "POST":
+            if user.get("role") == "viewer":
+                return err(403, "Viewers cannot create records")
             body = json.loads(event.get("body") or "{}")
             if not body.get("name") or not body.get("email"): return err(400, "name and email are required")
             return resp(201, {"resource": create_resource(PG_CONFIG, body)})

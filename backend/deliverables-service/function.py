@@ -42,6 +42,8 @@ def handler(event=None, context=None):
             d = get_deliverable_by_id(PG_CONFIG, last)
             return resp(200, {"deliverable": d}) if d else err(404, "Not found")
         if method == "POST":
+            if user.get("role") == "viewer":
+                return err(403, "Viewers cannot create records")
             body = json.loads(event.get("body") or "{}")
             if not body.get("name"): return err(400, "name is required")
             if not body.get("project_id"): return err(400, "project_id is required")
