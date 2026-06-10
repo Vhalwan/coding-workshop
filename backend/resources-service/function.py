@@ -47,6 +47,8 @@ def handler(event=None, context=None):
                     return err(400, "resource_id, project_id, and hours_per_week are required")
                 return resp(201, {"allocation": create_allocation(PG_CONFIG, body)})
             if method == "DELETE" and is_uuid:
+                if user.get("role") not in ("admin", "manager"):
+                    return err(403, "Manager or Admin role required")
                 return resp(204, {}) if delete_allocation(PG_CONFIG, last) else err(404, "Not found")
         if method == "GET" and not is_uuid:
             return resp(200, {"resources": get_all_resources(PG_CONFIG)})
