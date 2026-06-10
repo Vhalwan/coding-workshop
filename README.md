@@ -1,113 +1,73 @@
-# Coding Workshop
+# ACME Project Hub
 
-The goal of this coding workshop is to enable and assess the hands-on skills
-of participants through development of a practical technical solution that
-solves a theoretical business problem.
+A project management application built for the AWS Workshop. Manages projects, deliverables, resources, and budgets with role-based access control.
 
-## Getting Started
+## Tech Stack
 
-Navigate to [Coding Workshop - Main Guide](./docs/README.md) to get started.
+- **Frontend:** React + Vite + Material UI
+- **Backend:** Python Lambda functions (LocalStack locally, AWS Lambda on cloud)
+- **Databases:** PostgreSQL (structured data) + MongoDB (unstructured data)
+- **Auth:** JWT tokens with bcrypt password hashing
+- **Infrastructure:** AWS Lambda, API Gateway, S3, CloudFront (via LocalStack locally)
 
-## Coding Workshop Example
+## Running Locally (VDI)
 
-Coding workshop organizer(s) will provide instructions to follow by email. Here
-below is a real example of requirements and expectations for participant(s):
+```bash
+# 1. Make sure environment variables are set
+source ~/.bashrc
 
-### Requirements: Business Problem
+# 2. Start everything
+./bin/start-dev.sh
 
-Our company ACME Inc. is going through a massive organizational transformation
-to become a more data-driven organization. Information about teams structure
-and performance is currently scattered across multiple systems, making it
-difficult to get a comprehensive view of team dynamics and achievements.
+# 3. Open in browser
+http://localhost:3000
+```
 
-We are struggling to answer simple questions like:
+The start script handles PostgreSQL, MongoDB, LocalStack, all backend services, and the Vite frontend automatically.
 
-* Who are the members of each team?
-* Where are the teams located?
-* What are the key achievements of each team on a monthly basis?
-* How many teams have team leader not co-located with team members?
-* How many teams have team leader as a non-direct staff?
-* How many teams have non-direct staff to employees ratio above 20%?
-* How many teams are reporting to an organization leader?
+## Test Accounts
 
-### Requirements: Technical Solution
+| Role | Email | Password | Access |
+|------|-------|----------|--------|
+| Admin | admin@test.com | admin123 | Full access + user management |
+| Manager | manager@test.com | manager123 | Create, edit, delete everything |
+| Contributor | contributor@test.com | contributor123 | Create and edit, no delete |
+| Viewer | viewer@test.com | viewer123 | Read-only |
 
-As part of this transformation, we are looking to build a centralized team
-management tool that will allow us to track team members, team locations,
-monthly team achievements, as well as individual-level and team-level metadata.
-Initial focus is to provide a self-service capability without any integrations
-with other tools such as Employee Directory, Project Tracking, or Performance
-Management.
+## Features
 
-The technical solution involves developing a stand-alone web application using
-modern technologies. The application will have the following features:
+- **Authentication** — Register, login, JWT session, protected routes
+- **Projects** — Full CRUD with status/priority filtering and budget tracking
+- **Deliverables** — Task tracking with project assignment, status, assignee
+- **Resources** — Team capacity management with allocation tracking per project
+- **Budget** — Expense and allocation tracking with per-project summaries
+- **Dashboard** — Live stats: active projects, at-risk count, deliverables progress, over-allocated resources, budget overview
 
-* User authentication and authorization
-* Role-based access control
-* CRUD operations for individuals, teams, achievements and metadata
-* Search and filter functionality
-* Responsive design for mobile and desktop usage
+## Role-Based Access Control
 
-### Requirements: Technology Stack
+- Public registration is limited to Viewer and Contributor roles
+- Manager and Admin accounts are pre-seeded (privilege escalation prevention)
+- Backend enforces role checks on every write/delete endpoint — not just UI
+- Viewer POST attempts return 403 even via direct API call
 
-The following technologies are required to build the application:
+## Running Tests
 
-* Frontend: HTML, CSS, React.js with React Responsive and Material UI Components
-* Backend: Python
-* Database: PostgreSQL
+```bash
+cd backend
+python -m pytest tests/ -v
+```
 
-The following technologies are good to know, as they are used to manage and
-deploy code:
+## API Endpoints
 
-* Version Control: Git, GitHub
-* Infrastructure: Terraform
-* Deployment Mode: Shell Scripts
-* Deployment Target: AWS Serverless (e.g., S3, CloudFront, Lambda, DocumentDB)
+All endpoints run through the proxy at `http://localhost:3001/api/`
 
-### Expectations: Value-Based Outcomes
+| Service | Base Path |
+|---------|-----------|
+| Auth | `/auth-service/` |
+| Projects | `/projects-service/projects` |
+| Deliverables | `/deliverables-service/deliverables` |
+| Resources | `/resources-service/resources` |
+| Allocations | `/resources-service/allocations` |
+| Budget | `/budget-service/budget` |
 
-By the end of the workshop, participants will have developed a functional
-web application that meets the requirements outlined above. The application
-will be deployed to a cloud environment and accessible via a web browser.
-Participants will also gain hands-on experience with modern web development
-technologies and best practices.
-
-## Contributing
-
-See the [CONTRIBUTING](./CONTRIBUTING.md) resource for more details.
-
-## License
-
-This library is licensed under the MIT-0 License.
-See the [LICENSE](./LICENSE) resource for more details.
-
-## Roadmap
-
-See the
-[open issues](https://github.com/citi/coding-workshop-participant/issues)
-for a list of proposed roadmap features (and known issues).
-
-## Security
-
-See the
-[Security Issue Notifications](./CONTRIBUTING.md#security-issue-notifications)
-resource for more details.
-
-## Authors
-
-The following people have contributed to this workshop:
-
-* Colin Heilman - [@heilmancs](https://github.com/heilmancs)
-* Eugene Istrati - [@eistrati](https://github.com/eistrati)
-* Isaiah Cornelius Smith - [@corneliusmith](https://github.com/corneliusmith)
-* Juan Arevalo - [@jparevalo27](https://github.com/jparevalo27)
-* Michael Annucci - [@michael-annucci](https://github.com/michael-annucci)
-
-## Feedback
-
-We'd love to hear your feedback! Please:
-
-* ⭐ Star the repository if you find it helpful
-* 🐛 Report issues on GitHub
-* 💡 Suggest improvements
-* 📝 Share your experience
+All endpoints require `Authorization: Bearer <token>` header except `/auth-service/login` and `/auth-service/register`.
