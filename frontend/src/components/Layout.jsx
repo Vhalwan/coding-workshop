@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  AppBar, Toolbar, Typography, IconButton, Chip, Tooltip, useMediaQuery, useTheme
+  AppBar, Toolbar, Typography, IconButton, Chip, Tooltip, useTheme
 } from '@mui/material';
+import { useMediaQuery } from 'react-responsive';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FolderIcon from '@mui/icons-material/Folder';
 import TaskIcon from '@mui/icons-material/Task';
@@ -30,7 +31,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const isDesktop = useMediaQuery({ minWidth: 768 });
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNavigate = (path) => {
@@ -84,23 +85,27 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
-          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': drawerPaperSx }}
-        >
-          {drawerContent}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': drawerPaperSx }}
-          open
-        >
-          {drawerContent}
-        </Drawer>
+      <Box component="nav" sx={{ width: isDesktop ? DRAWER_WIDTH : 0, flexShrink: isDesktop ? 0 : undefined }}>
+        {!isDesktop && (
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            ModalProps={{ keepMounted: true }}
+            sx={{ '& .MuiDrawer-paper': drawerPaperSx }}
+          >
+            {drawerContent}
+          </Drawer>
+        )}
+        {isDesktop && (
+          <Drawer
+            variant="permanent"
+            sx={{ '& .MuiDrawer-paper': drawerPaperSx }}
+            open
+          >
+            {drawerContent}
+          </Drawer>
+        )}
       </Box>
 
       <Box

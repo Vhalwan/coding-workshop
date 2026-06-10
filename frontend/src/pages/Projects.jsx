@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Chip, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, IconButton, Alert, CircularProgress, Tooltip, InputAdornment
@@ -29,6 +30,10 @@ export default function Projects() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+
+  const isDesktop = useMediaQuery({ minWidth: 1024 });
+  const isTablet = useMediaQuery({ minWidth: 768, maxWidth: 1023 });
+  const gridSize = isDesktop ? 4 : isTablet ? 6 : 12;
 
   const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
   const canDelete = ['admin', 'manager'].includes(user?.role);
@@ -120,7 +125,7 @@ export default function Projects() {
 
       <Grid container spacing={3}>
         {filteredProjects.map(p => (
-          <Grid size={{ xs: 12, md: 6, xl: 4 }} key={p.id}>
+          <Grid size={gridSize} key={p.id}>
             <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
               <CardContent sx={{ minWidth: 0 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>

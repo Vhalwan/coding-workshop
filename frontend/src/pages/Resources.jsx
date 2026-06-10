@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import {
   Box, Typography, Button, Card, CardContent, Grid, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress,
@@ -32,6 +33,10 @@ export default function Resources() {
   const [allocLoading, setAllocLoading] = useState(false);
   const [allocForm, setAllocForm] = useState(EMPTY_ALLOC);
   const [allocSaving, setAllocSaving] = useState(false);
+
+  const isDesktop = useMediaQuery({ minWidth: 1024 });
+  const isTablet = useMediaQuery({ minWidth: 768, maxWidth: 1023 });
+  const gridSize = isDesktop ? 4 : isTablet ? 6 : 12;
 
   const canWrite = ['admin', 'manager', 'contributor'].includes(user?.role);
   const canDelete = ['admin', 'manager'].includes(user?.role);
@@ -169,7 +174,7 @@ export default function Resources() {
           const over = r.allocated_hours > r.capacity_hours_per_week;
           const overage = r.allocated_hours - r.capacity_hours_per_week;
           return (
-            <Grid size={{ xs: 12, md: 6, xl: 4 }} key={r.id}>
+            <Grid size={gridSize} key={r.id}>
               <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
                 <CardContent sx={{ minWidth: 0 }}>
                   {over && (
