@@ -69,18 +69,23 @@ export default function Resources() {
     try { await resourcesApi.delete(id); load(); } catch (e) { setError(e.message); }
   };
 
-  const loadAllocations = (resourceId) =>
-    resourcesApi.getAllocations({ resource_id: resourceId })
-      .then(d => setAllocations(d.allocations || []))
-      .catch(e => setError(e.message));
+  const loadResourceDetail = (resourceId) =>
+    resourcesApi.getById(resourceId)
+      .then(d => {
+        const resource = d.resource || {};
+        setAllocResource(resource);
+        setAllocations(resource.allocations || []);
+        return resource;
+      })
+      .catch(e => { setError(e.message); return null; });
 
   const openAllocations = async (resource) => {
-    setAllocResource(resource);
     setAllocForm(EMPTY_ALLOC);
+    setAllocResource(resource);
     setAllocations([]);
     setAllocOpen(true);
     setAllocLoading(true);
-    await loadAllocations(resource.id);
+    await loadResourceDetail(resource.id);
     setAllocLoading(false);
   };
 
@@ -99,7 +104,7 @@ export default function Resources() {
         end_date: allocForm.end_date || null,
       });
       setAllocForm(EMPTY_ALLOC);
-      await loadAllocations(allocResource.id);
+      await loadResourceDetail(allocResource.id);
       load();
     } catch (e) { setError(e.message); }
     finally { setAllocSaving(false); }
@@ -108,7 +113,7 @@ export default function Resources() {
   const removeAllocation = async (id) => {
     try {
       await resourcesApi.deleteAllocation(id);
-      await loadAllocations(allocResource.id);
+      await loadResourceDetail(allocResource.id);
       load();
     } catch (e) { setError(e.message); }
   };
@@ -125,12 +130,13 @@ export default function Resources() {
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
-  const allocatedInDialog = allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
   const dialogCapacity = allocResource?.capacity_hours_per_week || 0;
-  const dialogAvailable = dialogCapacity - allocatedInDialog;
+  const allocatedInDialog = allocResource?.allocated_hours ?? allocations.reduce((sum, a) => sum + (a.hours_per_week || 0), 0);
+  const dialogAvailable = allocResource?.available_hours ?? (dialogCapacity - allocatedInDialog);
   const dialogOverage = allocatedInDialog - dialogCapacity;
   const dialogIsOver = dialogOverage > 0;
   const newAllocHours = Number(allocForm.hours_per_week) || 0;
+  const remainingAfterInput = dialogAvailable - newAllocHours;
   const wouldOverallocate = newAllocHours > dialogAvailable;
   const projectedOverage = allocatedInDialog + newAllocHours - dialogCapacity;
 
@@ -232,17 +238,19 @@ export default function Resources() {
       </Dialog>
 
       <Dialog open={allocOpen} onClose={() => setAllocOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
-        <DialogTitle>
-          Allocations — {allocResource?.name}
-          <Typography variant="body2" color={dialogAvailable < 0 ? 'error.main' : 'text.secondary'}>
-            {allocatedInDialog}/{dialogCapacity}h allocated · {dialogAvailable}h available
-          </Typography>
-        </DialogTitle>
+        <DialogTitle>Allocations — {allocResource?.name}</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           {allocLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>
           ) : (
             <>
+              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="body2">Capacity: {dialogCapacity}h/week</Typography>
+                <Typography variant="body2">Allocated: {allocatedInDialog}h/week</Typography>
+                <Typography variant="body2" color={dialogAvailable > 0 ? 'success.main' : 'error.main'} fontWeight={600}>
+                  Available: {dialogAvailable}h/week
+                </Typography>
+              </Box>
               {dialogIsOver && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {allocResource?.name} is over-allocated by {dialogOverage}h/week ({allocatedInDialog}h allocated vs {dialogCapacity}h capacity).
@@ -272,6 +280,11 @@ export default function Resources() {
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Add allocation</Typography>
+                  {dialogAvailable <= 0 && (
+                    <Alert severity="error" sx={{ mb: 1 }}>
+                      This resource is already at or over capacity
+                    </Alert>
+                  )}
                   {wouldOverallocate && newAllocHours > 0 && (
                     <Alert severity="warning" sx={{ mb: 1 }}>
                       Adding {newAllocHours}h/week will push {allocResource?.name} over capacity by {projectedOverage}h/week
@@ -292,10 +305,13 @@ export default function Resources() {
                       onChange={e => setAllocForm(f => ({ ...f, hours_per_week: e.target.value }))} fullWidth
                       error={wouldOverallocate && newAllocHours > 0}
                       helperText={
-                        wouldOverallocate && newAllocHours > 0
-                          ? `Exceeds available capacity — will be over-allocated by ${projectedOverage}h/week`
-                          : ''
+                        newAllocHours > 0
+                          ? `${remainingAfterInput} hours available`
+                          : `${dialogAvailable} hours available`
                       }
+                      FormHelperTextProps={{
+                        sx: { color: remainingAfterInput < 0 ? 'error.main' : remainingAfterInput === 0 ? 'warning.main' : 'text.secondary' },
+                      }}
                     />
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                       <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />

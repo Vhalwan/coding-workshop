@@ -79,10 +79,36 @@ def get_resource_by_id(config, resource_id):
     conn = get_connection(config)
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT id, name, email, role, department, capacity_hours_per_week, created_at, updated_at
-            FROM resources WHERE id = %s;
+            SELECT r.id, r.name, r.email, r.role, r.department, r.capacity_hours_per_week, r.created_at, r.updated_at,
+                   COALESCE(SUM(a.hours_per_week), 0) as allocated_hours
+            FROM resources r
+            LEFT JOIN allocations a ON r.id = a.resource_id
+            WHERE r.id = %s
+            GROUP BY r.id;
         """, (resource_id,))
-        return resource_to_dict(cur.fetchone())
+        row = cur.fetchone()
+        if not row:
+            return None
+        allocated = int(row[8])
+        capacity = row[5]
+        resource = {
+            "id": str(row[0]), "name": row[1], "email": row[2], "role": row[3],
+            "department": row[4], "capacity_hours_per_week": capacity,
+            "created_at": row[6].isoformat(), "updated_at": row[7].isoformat(),
+            "allocated_hours": allocated,
+            "available_hours": capacity - allocated,
+        }
+        cur.execute("""
+            SELECT id, resource_id, project_id, project_name, hours_per_week, start_date, end_date, created_at
+            FROM allocations WHERE resource_id = %s ORDER BY created_at DESC;
+        """, (resource_id,))
+        resource["allocations"] = [
+            {"id": str(r[0]), "resource_id": str(r[1]), "project_id": str(r[2]), "project_name": r[3],
+             "hours_per_week": r[4], "start_date": r[5].isoformat() if r[5] else None,
+             "end_date": r[6].isoformat() if r[6] else None, "created_at": r[7].isoformat()}
+            for r in cur.fetchall()
+        ]
+        return resource
 
 def update_resource(config, resource_id, data):
     conn = get_connection(config)
