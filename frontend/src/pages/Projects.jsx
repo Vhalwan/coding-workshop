@@ -37,17 +37,23 @@ export default function Projects() {
 
   useEffect(() => { load(); }, [filter]);
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
-  const openEdit = (p) => { setEditing(p); setForm({ ...p, budget_total: p.budget_total || '', start_date: p.start_date || '', end_date: p.end_date || '' }); setOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(EMPTY); setError(''); setOpen(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ ...p, budget_total: p.budget_total || '', start_date: p.start_date || '', end_date: p.end_date || '' }); setError(''); setOpen(true); };
+  const closeDialog = () => { setOpen(false); setError(''); };
 
   const save = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const body = { ...form, budget_total: form.budget_total ? Number(form.budget_total) : 0 };
+      const body = {
+        ...form,
+        budget_total: form.budget_total ? Number(form.budget_total) : 0,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+      };
       if (editing) await projectsApi.update(editing.id, body);
       else await projectsApi.create(body);
-      setOpen(false);
+      closeDialog();
       load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
@@ -108,7 +114,7 @@ export default function Projects() {
         ))}
       </Grid>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Project' : 'New Project'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Project Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth />
@@ -128,7 +134,7 @@ export default function Projects() {
           <TextField label="Total Budget ($)" type="number" value={form.budget_total} onChange={e => setForm(f => ({ ...f, budget_total: e.target.value }))} fullWidth />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={closeDialog}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.name.trim()}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>

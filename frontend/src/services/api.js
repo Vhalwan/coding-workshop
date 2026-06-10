@@ -10,8 +10,15 @@ const headers = (extra = {}) => ({
 
 const handle = async (res) => {
   const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(res.ok ? 'Invalid response from server' : (text || 'Request failed'));
+    }
+  }
+  if (!res.ok) throw new Error(data.error || text || 'Request failed');
   return data;
 };
 

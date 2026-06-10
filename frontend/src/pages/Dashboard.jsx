@@ -35,17 +35,23 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       projectsApi.getAll(),
       deliverablesApi.getAll(),
       resourcesApi.getAll(),
       budgetApi.getSummary(),
-    ]).then(([p, d, r, b]) => {
-      setProjects(p.projects || []);
-      setDeliverables(d.deliverables || []);
-      setResources(r.resources || []);
-      setBudgetSummary(b.summary || []);
-    }).catch(e => setError(e.message)).finally(() => setLoading(false));
+    ]).then(([projectsRes, deliverablesRes, resourcesRes, budgetRes]) => {
+      const errors = [];
+      if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.projects || []);
+      else errors.push(`Projects: ${projectsRes.reason?.message}`);
+      if (deliverablesRes.status === 'fulfilled') setDeliverables(deliverablesRes.value.deliverables || []);
+      else errors.push(`Deliverables: ${deliverablesRes.reason?.message}`);
+      if (resourcesRes.status === 'fulfilled') setResources(resourcesRes.value.resources || []);
+      else errors.push(`Resources: ${resourcesRes.reason?.message}`);
+      if (budgetRes.status === 'fulfilled') setBudgetSummary(budgetRes.value.summary || []);
+      else errors.push(`Budget: ${budgetRes.reason?.message}`);
+      if (errors.length) setError(errors.join(' · '));
+    }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
