@@ -49,6 +49,8 @@ export const deliverablesApi = {
   create: (body) => fetch(`${BASE_URL}/deliverables-service/deliverables`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
   update: (id, body) => fetch(`${BASE_URL}/deliverables-service/deliverables/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(handle),
   delete: (id) => fetch(`${BASE_URL}/deliverables-service/deliverables/${id}`, { method: 'DELETE', headers: headers() }).then(handle),
+  addDependency: (id, dependsOnId) => fetch(`${BASE_URL}/deliverables-service/deliverables/${id}/dependencies`, { method: 'POST', headers: headers(), body: JSON.stringify({ depends_on_id: dependsOnId }) }).then(handle),
+  removeDependency: (id, dependsOnId) => fetch(`${BASE_URL}/deliverables-service/deliverables/${id}/dependencies/${dependsOnId}`, { method: 'DELETE', headers: headers() }).then(handle),
 };
 
 // Resources

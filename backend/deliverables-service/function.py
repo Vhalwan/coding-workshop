@@ -1,5 +1,6 @@
 import json, logging, os, jwt
-from postgres_service import init_db, create_deliverable, get_deliverables, get_deliverable_by_id, update_deliverable, delete_deliverable, reset_connection
+from postgres_service import (init_db, create_deliverable, get_deliverables, get_deliverable_by_id,
+    update_deliverable, delete_deliverable, add_dependency, remove_dependency, reset_connection)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 IS_LOCAL = os.getenv("IS_LOCAL", "false") == "true"
@@ -36,6 +37,29 @@ def handler(event=None, context=None):
         params = event.get("queryStringParameters") or {}
         last = parts[-1] if parts else ""
         is_uuid = len(last) == 36 and last.count("-") == 4
+        if "dependencies" in parts:
+            dep_idx = parts.index("dependencies")
+            deliverable_id = parts[dep_idx - 1]
+            if user.get("role") == "viewer":
+                return err(403, "Viewers cannot modify dependencies")
+            if method == "POST" and dep_idx == len(parts) - 1:
+                body = json.loads(event.get("body") or "{}")
+                depends_on_id = body.get("depends_on_id")
+                if not depends_on_id:
+                    return err(400, "depends_on_id is required")
+                try:
+                    dep = add_dependency(PG_CONFIG, deliverable_id, depends_on_id)
+                except ValueError as e:
+                    return err(400, str(e))
+                if dep is None:
+                    return err(404, "Deliverable not found")
+                return resp(201, {"dependency": dep})
+            if method == "DELETE" and dep_idx == len(parts) - 2:
+                depends_on_id = parts[dep_idx + 1]
+                if remove_dependency(PG_CONFIG, deliverable_id, depends_on_id):
+                    return resp(204, {})
+                return err(404, "Dependency not found")
+            return err(404, f"Not found: {method} {path}")
         if method == "GET" and not is_uuid:
             return resp(200, {"deliverables": get_deliverables(PG_CONFIG, project_id=params.get("project_id"), status=params.get("status"))})
         if method == "GET" and is_uuid:

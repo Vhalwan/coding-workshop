@@ -7,17 +7,19 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { deliverablesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
 
 const STATUSES = ['pending', 'in_progress', 'completed', 'blocked'];
 const PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const STATUS_COLOR = { pending: 'default', in_progress: 'primary', completed: 'success', blocked: 'error' };
-const EMPTY = { name: '', description: '', project_id: '', status: 'pending', priority: 'medium', assignee_name: '', due_date: '' };
+const EMPTY = { name: '', description: '', project_id: '', status: 'pending', priority: 'medium', assignee_name: '', due_date: '', dependency_ids: [] };
 
 export default function Deliverables() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
+  const [allItems, setAllItems] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,14 +35,47 @@ export default function Deliverables() {
 
   const load = () => Promise.all([
     deliverablesApi.getAll({ ...(filterProject ? { project_id: filterProject } : {}), ...(filterStatus ? { status: filterStatus } : {}) }),
+    deliverablesApi.getAll(),
     projectsApi.getAll()
-  ]).then(([d, p]) => { setItems(d.deliverables || []); setProjects(p.projects || []); })
-    .catch(e => setError(e.message)).finally(() => setLoading(false));
+  ]).then(([d, all, p]) => {
+    setItems(d.deliverables || []);
+    setAllItems(all.deliverables || []);
+    setProjects(p.projects || []);
+  }).catch(e => setError(e.message)).finally(() => setLoading(false));
 
   useEffect(() => { load(); }, [filterProject, filterStatus]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
-  const openEdit = (d) => { setEditing(d); setForm({ ...d, due_date: d.due_date || '', assignee_name: d.assignee_name || '' }); setOpen(true); };
+  const openEdit = (d) => {
+    setEditing(d);
+    setForm({
+      ...d,
+      due_date: d.due_date || '',
+      assignee_name: d.assignee_name || '',
+      dependency_ids: (d.dependencies || []).map(dep => dep.id),
+    });
+    setOpen(true);
+  };
+
+  const projectDeliverables = (projectId, excludeId) =>
+    allItems.filter(d => d.project_id === projectId && d.id !== excludeId);
+
+  const hasIncompleteDeps = (d) =>
+    (d.dependencies || []).some(dep => {
+      const depItem = allItems.find(i => i.id === dep.id);
+      return depItem && depItem.status !== 'completed';
+    });
+
+  const syncDependencies = async (deliverableId, oldDeps, newIds) => {
+    const oldIds = new Set((oldDeps || []).map(dep => dep.id));
+    const newIdSet = new Set(newIds);
+    for (const id of newIds) {
+      if (!oldIds.has(id)) await deliverablesApi.addDependency(deliverableId, id);
+    }
+    for (const id of oldIds) {
+      if (!newIdSet.has(id)) await deliverablesApi.removeDependency(deliverableId, id);
+    }
+  };
 
   const save = async () => {
     if (!form.name.trim() || !form.project_id) return;
@@ -55,8 +90,16 @@ export default function Deliverables() {
         assignee_name: form.assignee_name || null,
         due_date: form.due_date || null,
       };
-      if (editing) await deliverablesApi.update(editing.id, body);
-      else await deliverablesApi.create(body);
+      if (editing) {
+        await deliverablesApi.update(editing.id, body);
+        await syncDependencies(editing.id, editing.dependencies, form.dependency_ids);
+      } else {
+        const result = await deliverablesApi.create(body);
+        const id = result.deliverable?.id;
+        if (id && form.dependency_ids.length) {
+          await syncDependencies(id, [], form.dependency_ids);
+        }
+      }
       setOpen(false); load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
@@ -97,6 +140,7 @@ export default function Deliverables() {
               <TableCell fontWeight={600}>Name</TableCell>
               <TableCell>Project</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Dependencies</TableCell>
               <TableCell>Priority</TableCell>
               <TableCell>Assignee</TableCell>
               <TableCell>Due Date</TableCell>
@@ -105,13 +149,27 @@ export default function Deliverables() {
           </TableHead>
           <TableBody>
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>No deliverables found. Create one!</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>No deliverables found. Create one!</TableCell></TableRow>
             )}
             {items.map(d => (
               <TableRow key={d.id} hover>
                 <TableCell><Typography fontWeight={500}>{d.name}</Typography>{d.description && <Typography variant="caption" color="text.secondary">{d.description}</Typography>}</TableCell>
                 <TableCell>{projectName(d.project_id)}</TableCell>
-                <TableCell><Chip label={d.status.replace('_', ' ')} color={STATUS_COLOR[d.status]} size="small" /></TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip label={d.status.replace('_', ' ')} color={STATUS_COLOR[d.status]} size="small" />
+                    {hasIncompleteDeps(d) && (
+                      <Tooltip title="Has incomplete dependencies">
+                        <WarningAmberIcon color="warning" sx={{ fontSize: 18 }} />
+                      </Tooltip>
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  {(d.dependencies || []).length > 0
+                    ? (d.dependencies || []).map(dep => <Chip key={dep.id} label={dep.name} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} />)
+                    : '—'}
+                </TableCell>
                 <TableCell><Chip label={d.priority} size="small" variant="outlined" /></TableCell>
                 <TableCell>{d.assignee_name || '—'}</TableCell>
                 <TableCell>{d.due_date || '—'}</TableCell>
@@ -129,9 +187,31 @@ export default function Deliverables() {
         <DialogTitle>{editing ? 'Edit Deliverable' : 'New Deliverable'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
-          <TextField select label="Project *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} fullWidth>
+          <TextField select label="Project *" value={form.project_id} onChange={e => {
+            const project_id = e.target.value;
+            setForm(f => ({
+              ...f,
+              project_id,
+              dependency_ids: f.dependency_ids.filter(id => projectDeliverables(project_id, editing?.id).some(d => d.id === id)),
+            }));
+          }} fullWidth>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
+          {form.project_id && (
+            <TextField
+              select
+              label="Depends on"
+              value={form.dependency_ids}
+              onChange={e => setForm(f => ({ ...f, dependency_ids: typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value }))}
+              fullWidth
+              SelectProps={{ multiple: true, renderValue: (selected) => selected.map(id => projectDeliverables(form.project_id, editing?.id).find(d => d.id === id)?.name || id).join(', ') }}
+              disabled={!canWrite}
+            >
+              {projectDeliverables(form.project_id, editing?.id).map(d => (
+                <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth multiline rows={2} />
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField select label="Status" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} fullWidth>

@@ -38,6 +38,15 @@ def init_db(config):
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS deliverable_dependencies (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                deliverable_id UUID NOT NULL,
+                depends_on_id UUID NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (deliverable_id, depends_on_id)
+            );
+        """)
         conn.commit()
 
 def create_deliverable(config, data):
@@ -54,7 +63,9 @@ def create_deliverable(config, data):
             _optional_date(data.get("due_date")), data.get("depends_on", [])
         ))
         conn.commit()
-        return row_to_dict(cur.fetchone())
+        d = row_to_dict(cur.fetchone())
+        d["dependencies"] = []
+        return d
 
 def get_deliverables(config, project_id=None, status=None):
     conn = get_connection(config)
@@ -72,7 +83,9 @@ def get_deliverables(config, project_id=None, status=None):
             params.append(status)
         query += " ORDER BY created_at DESC;"
         cur.execute(query, params)
-        return [row_to_dict(r) for r in cur.fetchall()]
+        deliverables = [row_to_dict(r) for r in cur.fetchall()]
+        deps_map = get_dependencies_map(config, project_id=project_id)
+        return enrich_with_dependencies(deliverables, deps_map)
 
 def get_deliverable_by_id(config, deliverable_id):
     conn = get_connection(config)
@@ -81,7 +94,11 @@ def get_deliverable_by_id(config, deliverable_id):
             SELECT id, project_id, name, description, status, priority, assignee_id, assignee_name, due_date, completed_at, depends_on, created_at, updated_at
             FROM deliverables WHERE id = %s;
         """, (deliverable_id,))
-        return row_to_dict(cur.fetchone())
+        d = row_to_dict(cur.fetchone())
+        if d:
+            deps_map = get_dependencies_map(config, deliverable_ids=[deliverable_id])
+            enrich_with_dependencies([d], deps_map)
+        return d
 
 def update_deliverable(config, deliverable_id, data):
     conn = get_connection(config)
@@ -103,15 +120,104 @@ def update_deliverable(config, deliverable_id, data):
         """, (
             data.get("name"), data.get("description"), data.get("status"),
             data.get("priority"), data.get("assignee_id"), data.get("assignee_name"),
-            _optional_date(data.get("due_date")), data.get("status", ""), deliverable_id
+            _optional_date(data.get("due_date")),             data.get("status", ""), deliverable_id
         ))
         conn.commit()
-        return row_to_dict(cur.fetchone())
+        d = row_to_dict(cur.fetchone())
+        if d:
+            deps_map = get_dependencies_map(config, deliverable_ids=[deliverable_id])
+            enrich_with_dependencies([d], deps_map)
+        return d
 
 def delete_deliverable(config, deliverable_id):
     conn = get_connection(config)
     with conn.cursor() as cur:
+        cur.execute("DELETE FROM deliverable_dependencies WHERE deliverable_id = %s OR depends_on_id = %s;", (deliverable_id, deliverable_id))
         cur.execute("DELETE FROM deliverables WHERE id = %s RETURNING id;", (deliverable_id,))
+        conn.commit()
+        return cur.fetchone() is not None
+
+def get_dependencies_map(config, project_id=None, deliverable_ids=None):
+    conn = get_connection(config)
+    with conn.cursor() as cur:
+        query = """
+            SELECT dd.deliverable_id, d.id, d.name
+            FROM deliverable_dependencies dd
+            JOIN deliverables d ON d.id = dd.depends_on_id
+            WHERE 1=1
+        """
+        params = []
+        if project_id:
+            query += " AND dd.deliverable_id IN (SELECT id FROM deliverables WHERE project_id = %s)"
+            params.append(project_id)
+        if deliverable_ids:
+            query += " AND dd.deliverable_id = ANY(%s)"
+            params.append(deliverable_ids)
+        cur.execute(query, params)
+        deps_map = {}
+        for row in cur.fetchall():
+            did = str(row[0])
+            deps_map.setdefault(did, []).append({"id": str(row[1]), "name": row[2]})
+        return deps_map
+
+def enrich_with_dependencies(deliverables, deps_map):
+    for d in deliverables:
+        d["dependencies"] = deps_map.get(d["id"], [])
+    return deliverables
+
+def get_direct_dependencies(config, deliverable_id):
+    conn = get_connection(config)
+    with conn.cursor() as cur:
+        cur.execute("SELECT depends_on_id FROM deliverable_dependencies WHERE deliverable_id = %s;", (deliverable_id,))
+        return [str(r[0]) for r in cur.fetchall()]
+
+def would_create_cycle(config, deliverable_id, depends_on_id):
+    visited = set()
+    stack = [depends_on_id]
+    while stack:
+        current = stack.pop()
+        if current == deliverable_id:
+            return True
+        if current in visited:
+            continue
+        visited.add(current)
+        stack.extend(get_direct_dependencies(config, current))
+    return False
+
+def add_dependency(config, deliverable_id, depends_on_id):
+    if deliverable_id == depends_on_id:
+        raise ValueError("A deliverable cannot depend on itself")
+    conn = get_connection(config)
+    with conn.cursor() as cur:
+        cur.execute("SELECT project_id FROM deliverables WHERE id = %s;", (deliverable_id,))
+        row1 = cur.fetchone()
+        cur.execute("SELECT project_id FROM deliverables WHERE id = %s;", (depends_on_id,))
+        row2 = cur.fetchone()
+        if not row1 or not row2:
+            return None
+        if str(row1[0]) != str(row2[0]):
+            raise ValueError("Dependencies must be within the same project")
+    if would_create_cycle(config, deliverable_id, depends_on_id):
+        raise ValueError("Circular dependency detected")
+    conn = get_connection(config)
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO deliverable_dependencies (deliverable_id, depends_on_id)
+            VALUES (%s, %s)
+            RETURNING id, deliverable_id, depends_on_id, created_at;
+        """, (deliverable_id, depends_on_id))
+        conn.commit()
+        row = cur.fetchone()
+        return {"id": str(row[0]), "deliverable_id": str(row[1]), "depends_on_id": str(row[2]), "created_at": row[3].isoformat() if row[3] else None}
+
+def remove_dependency(config, deliverable_id, depends_on_id):
+    conn = get_connection(config)
+    with conn.cursor() as cur:
+        cur.execute("""
+            DELETE FROM deliverable_dependencies
+            WHERE deliverable_id = %s AND depends_on_id = %s
+            RETURNING id;
+        """, (deliverable_id, depends_on_id))
         conn.commit()
         return cur.fetchone() is not None
 
