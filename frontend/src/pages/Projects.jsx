@@ -6,6 +6,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
 
@@ -38,7 +39,7 @@ export default function Projects() {
   useEffect(() => { load(); }, [filter]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setError(''); setOpen(true); };
-  const openEdit = (p) => { setEditing(p); setForm({ ...p, budget_total: p.budget_total || '', start_date: p.start_date || '', end_date: p.end_date || '' }); setError(''); setOpen(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ ...p, status: p.stored_status ?? p.status, budget_total: p.budget_total || '', start_date: p.start_date || '', end_date: p.end_date || '' }); setError(''); setOpen(true); };
   const closeDialog = () => { setOpen(false); setError(''); };
 
   const save = async () => {
@@ -99,7 +100,15 @@ export default function Projects() {
                   )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip label={p.status.replace('_', ' ')} color={STATUS_COLOR[p.status]} size="small" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />
+                  <Tooltip title={p.auto_at_risk ? 'Automatically flagged — deadline within 14 days' : ''} disableHoverListener={!p.auto_at_risk}>
+                    <Chip
+                      label={p.status.replace('_', ' ')}
+                      color={STATUS_COLOR[p.status]}
+                      size="small"
+                      icon={p.auto_at_risk ? <AccessTimeIcon sx={{ fontSize: '0.875rem !important' }} /> : undefined}
+                      sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }}
+                    />
+                  </Tooltip>
                   <Chip label={p.priority} color={PRIORITY_COLOR[p.priority]} size="small" variant="outlined" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />
                 </Box>
                 {p.description && <Typography variant="body2" color="text.secondary" mb={2} sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.description}</Typography>}

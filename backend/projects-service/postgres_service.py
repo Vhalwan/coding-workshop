@@ -1,6 +1,7 @@
 """
 PostgreSQL service for projects.
 """
+from datetime import date
 from psycopg import connect
 
 PG_CONN = None
@@ -56,22 +57,38 @@ def create_project(config, data):
         conn.commit()
         return row_to_dict(cur.fetchone())
 
+def _meets_auto_at_risk_criteria(project, db_status):
+    if not project.get("end_date"):
+        return False
+    if db_status in ("completed", "cancelled"):
+        return False
+    end = date.fromisoformat(project["end_date"])
+    return (end - date.today()).days <= 14
+
+def enrich_project(project):
+    if not project:
+        return None
+    project = dict(project)
+    db_status = project["status"]
+    project["stored_status"] = db_status
+    project["auto_at_risk"] = False
+    if _meets_auto_at_risk_criteria(project, db_status) and db_status != "at_risk":
+        project["status"] = "at_risk"
+        project["auto_at_risk"] = True
+    return project
+
 def get_all_projects(config, status=None):
     conn = get_connection(config)
     with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, name, description, status, priority, start_date, end_date,
+                   owner_id, owner_name, budget_total, budget_spent, created_at, updated_at
+            FROM projects ORDER BY created_at DESC;
+        """)
+        projects = [enrich_project(row_to_dict(r)) for r in cur.fetchall()]
         if status:
-            cur.execute("""
-                SELECT id, name, description, status, priority, start_date, end_date,
-                       owner_id, owner_name, budget_total, budget_spent, created_at, updated_at
-                FROM projects WHERE status = %s ORDER BY created_at DESC;
-            """, (status,))
-        else:
-            cur.execute("""
-                SELECT id, name, description, status, priority, start_date, end_date,
-                       owner_id, owner_name, budget_total, budget_spent, created_at, updated_at
-                FROM projects ORDER BY created_at DESC;
-            """)
-        return [row_to_dict(r) for r in cur.fetchall()]
+            projects = [p for p in projects if p["status"] == status]
+        return projects
 
 def get_project_by_id(config, project_id):
     conn = get_connection(config)
@@ -82,7 +99,7 @@ def get_project_by_id(config, project_id):
             FROM projects WHERE id = %s;
         """, (project_id,))
         row = cur.fetchone()
-        return row_to_dict(row) if row else None
+        return enrich_project(row_to_dict(row)) if row else None
 
 def update_project(config, project_id, data):
     conn = get_connection(config)
