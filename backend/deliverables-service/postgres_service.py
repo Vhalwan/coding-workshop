@@ -5,6 +5,9 @@ from psycopg import connect
 
 PG_CONN = None
 
+def _optional_date(value):
+    return value if value else None
+
 def get_connection(config):
     global PG_CONN
     if PG_CONN is None or PG_CONN.closed:
@@ -48,7 +51,7 @@ def create_deliverable(config, data):
             data["project_id"], data["name"], data.get("description"),
             data.get("status", "pending"), data.get("priority", "medium"),
             data.get("assignee_id"), data.get("assignee_name"),
-            data.get("due_date"), data.get("depends_on", [])
+            _optional_date(data.get("due_date")), data.get("depends_on", [])
         ))
         conn.commit()
         return row_to_dict(cur.fetchone())
@@ -92,7 +95,7 @@ def update_deliverable(config, deliverable_id, data):
                 priority = COALESCE(%s, priority),
                 assignee_id = COALESCE(%s, assignee_id),
                 assignee_name = COALESCE(%s, assignee_name),
-                due_date = COALESCE(%s, due_date),
+                due_date = %s,
                 completed_at = CASE WHEN %s = 'completed' THEN CURRENT_TIMESTAMP ELSE completed_at END,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = %s
@@ -100,7 +103,7 @@ def update_deliverable(config, deliverable_id, data):
         """, (
             data.get("name"), data.get("description"), data.get("status"),
             data.get("priority"), data.get("assignee_id"), data.get("assignee_name"),
-            data.get("due_date"), data.get("status", ""), deliverable_id
+            _optional_date(data.get("due_date")), data.get("status", ""), deliverable_id
         ))
         conn.commit()
         return row_to_dict(cur.fetchone())

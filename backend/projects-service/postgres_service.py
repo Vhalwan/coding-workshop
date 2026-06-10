@@ -5,6 +5,9 @@ from psycopg import connect
 
 PG_CONN = None
 
+def _optional_date(value):
+    return value if value else None
+
 def get_connection(config):
     global PG_CONN
     if PG_CONN is None or PG_CONN.closed:
@@ -47,7 +50,7 @@ def create_project(config, data):
                       owner_id, owner_name, budget_total, budget_spent, created_at, updated_at;
         """, (
             data["name"], data.get("description"), data.get("status", "active"),
-            data.get("priority", "medium"), data.get("start_date"), data.get("end_date"),
+            data.get("priority", "medium"), _optional_date(data.get("start_date")), _optional_date(data.get("end_date")),
             data.get("owner_id"), data.get("owner_name"), data.get("budget_total", 0)
         ))
         conn.commit()
@@ -90,8 +93,8 @@ def update_project(config, project_id, data):
                 description = COALESCE(%s, description),
                 status = COALESCE(%s, status),
                 priority = COALESCE(%s, priority),
-                start_date = COALESCE(%s, start_date),
-                end_date = COALESCE(%s, end_date),
+                start_date = %s,
+                end_date = %s,
                 owner_id = COALESCE(%s, owner_id),
                 owner_name = COALESCE(%s, owner_name),
                 budget_total = COALESCE(%s, budget_total),
@@ -101,7 +104,7 @@ def update_project(config, project_id, data):
                       owner_id, owner_name, budget_total, budget_spent, created_at, updated_at;
         """, (
             data.get("name"), data.get("description"), data.get("status"),
-            data.get("priority"), data.get("start_date"), data.get("end_date"),
+            data.get("priority"), _optional_date(data.get("start_date")), _optional_date(data.get("end_date")),
             data.get("owner_id"), data.get("owner_name"), data.get("budget_total"),
             project_id
         ))

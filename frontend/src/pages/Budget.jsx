@@ -40,7 +40,16 @@ export default function Budget() {
     if (!form.project_id || !form.category || !form.amount) return;
     setSaving(true);
     try {
-      await budgetApi.create({ ...form, amount: Number(form.amount) });
+      const proj = projects.find(p => p.id === form.project_id);
+      await budgetApi.create({
+        project_id: form.project_id,
+        project_name: proj?.name || null,
+        category: form.category,
+        description: form.description || null,
+        amount: Number(form.amount),
+        type: form.type,
+        date: form.date || new Date().toISOString().split('T')[0],
+      });
       setOpen(false); load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }

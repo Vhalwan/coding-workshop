@@ -46,8 +46,17 @@ export default function Deliverables() {
     if (!form.name.trim() || !form.project_id) return;
     setSaving(true);
     try {
-      if (editing) await deliverablesApi.update(editing.id, form);
-      else await deliverablesApi.create(form);
+      const body = {
+        name: form.name.trim(),
+        project_id: form.project_id,
+        description: form.description || null,
+        status: form.status,
+        priority: form.priority,
+        assignee_name: form.assignee_name || null,
+        due_date: form.due_date || null,
+      };
+      if (editing) await deliverablesApi.update(editing.id, body);
+      else await deliverablesApi.create(body);
       setOpen(false); load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }

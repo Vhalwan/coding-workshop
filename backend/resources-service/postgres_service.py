@@ -5,6 +5,9 @@ from psycopg import connect
 
 PG_CONN = None
 
+def _optional_date(value):
+    return value if value else None
+
 def get_connection(config):
     global PG_CONN
     if PG_CONN is None or PG_CONN.closed:
@@ -112,7 +115,7 @@ def create_allocation(config, data):
             INSERT INTO allocations (resource_id, project_id, project_name, hours_per_week, start_date, end_date)
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id, resource_id, project_id, project_name, hours_per_week, start_date, end_date, created_at;
-        """, (data["resource_id"], data["project_id"], data.get("project_name"), data["hours_per_week"], data.get("start_date"), data.get("end_date")))
+        """, (data["resource_id"], data["project_id"], data.get("project_name"), data["hours_per_week"], _optional_date(data.get("start_date")), _optional_date(data.get("end_date"))))
         conn.commit()
         r = cur.fetchone()
         return {"id": str(r[0]), "resource_id": str(r[1]), "project_id": str(r[2]), "project_name": r[3], "hours_per_week": r[4], "start_date": r[5].isoformat() if r[5] else None, "end_date": r[6].isoformat() if r[6] else None, "created_at": r[7].isoformat()}
