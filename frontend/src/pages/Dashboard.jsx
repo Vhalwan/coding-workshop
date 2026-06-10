@@ -11,14 +11,14 @@ const STATUS_COLOR = { active: 'primary', at_risk: 'error', on_hold: 'warning', 
 
 function StatCard({ title, value, icon, color, onClick }) {
   return (
-    <Card sx={{ borderRadius: 3, boxShadow: 2, cursor: onClick ? 'pointer' : 'default', '&:hover': onClick ? { boxShadow: 6 } : {} }} onClick={onClick}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
+    <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%', cursor: onClick ? 'pointer' : 'default', '&:hover': onClick ? { boxShadow: 6 } : {} }} onClick={onClick}>
+      <CardContent sx={{ minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ minWidth: 0 }}>
             <Typography variant="body2" color="text.secondary">{title}</Typography>
-            <Typography variant="h4" fontWeight={700} color={color}>{value}</Typography>
+            <Typography variant="h4" fontWeight={700} color={color} sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>{value}</Typography>
           </Box>
-          <Box sx={{ color, fontSize: 48 }}>{icon}</Box>
+          <Box sx={{ color, fontSize: { xs: 36, sm: 48 }, flexShrink: 0 }}>{icon}</Box>
         </Box>
       </CardContent>
     </Card>
@@ -66,16 +66,16 @@ export default function Dashboard() {
       {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Grid container spacing={3} mb={4}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard title="Total Projects" value={projects.length} icon={<FolderIcon fontSize="inherit" />} color="primary.main" onClick={() => navigate('/projects')} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard title="At Risk" value={atRisk} icon={<WarningIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/projects')} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard title="Deliverables Done" value={`${completedDeliverables}/${deliverables.length}`} icon={<CheckCircleIcon fontSize="inherit" />} color="success.main" onClick={() => navigate('/deliverables')} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard title="Over-allocated" value={overAllocated} icon={<PeopleIcon fontSize="inherit" />} color="warning.main" onClick={() => navigate('/resources')} />
         </Grid>
       </Grid>
@@ -88,11 +88,11 @@ export default function Dashboard() {
               {projects.length === 0 && <Typography color="text.secondary">No projects yet. Create one!</Typography>}
               {projects.slice(0, 6).map(p => (
                 <Box key={p.id} sx={{ mb: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 2, cursor: 'pointer', '&:hover': { bgcolor: '#e8eaf6' } }} onClick={() => navigate('/projects')}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography fontWeight={600}>{p.name}</Typography>
-                    <Chip label={p.status.replace('_', ' ')} color={STATUS_COLOR[p.status] || 'default'} size="small" />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                    <Typography fontWeight={600} sx={{ wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>{p.name}</Typography>
+                    <Chip label={p.status.replace('_', ' ')} color={STATUS_COLOR[p.status] || 'default'} size="small" sx={{ flexShrink: 0, height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">Budget: ${p.budget_total?.toLocaleString()}</Typography>
                     <Typography variant="caption" color="text.secondary">Spent: ${p.budget_spent?.toLocaleString()}</Typography>
                   </Box>
@@ -115,8 +115,8 @@ export default function Dashboard() {
               {budgetSummary.length === 0 && <Typography color="text.secondary">No budget entries yet.</Typography>}
               {budgetSummary.slice(0, 5).map(b => (
                 <Box key={b.project_id} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2" fontWeight={500}>{b.project_name || 'Unknown'}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                    <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-word', minWidth: 0 }}>{b.project_name || 'Unknown'}</Typography>
                     <Typography variant="body2" color={b.remaining < 0 ? 'error.main' : 'success.main'}>
                       ${b.remaining?.toLocaleString()} left
                     </Typography>
@@ -138,8 +138,8 @@ export default function Dashboard() {
               {resources.length === 0 && <Typography color="text.secondary">No resources yet.</Typography>}
               {resources.slice(0, 5).map(r => (
                 <Box key={r.id} sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2" fontWeight={500}>{r.name}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                    <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-word', minWidth: 0 }}>{r.name}</Typography>
                     <Typography variant="body2" color={r.allocated_hours > r.capacity_hours_per_week ? 'error.main' : 'text.secondary'}>
                       {r.allocated_hours}/{r.capacity_hours_per_week}h
                     </Typography>

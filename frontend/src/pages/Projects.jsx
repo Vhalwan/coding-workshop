@@ -69,14 +69,14 @@ export default function Projects() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>Projects</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField select size="small" label="Filter by status" value={filter} onChange={e => setFilter(e.target.value)} sx={{ minWidth: 160 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField select size="small" label="Filter by status" value={filter} onChange={e => setFilter(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
             <MenuItem value="">All</MenuItem>
             {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </TextField>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>New Project</Button>}
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>New Project</Button>}
         </Box>
       </Box>
 
@@ -86,24 +86,24 @@ export default function Projects() {
 
       <Grid container spacing={3}>
         {projects.map(p => (
-          <Grid size={{ xs: 12, md: 6, lg: 4 }} key={p.id}>
+          <Grid size={{ xs: 12, md: 6, xl: 4 }} key={p.id}>
             <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography fontWeight={700} variant="h6" noWrap sx={{ flex: 1 }}>{p.name}</Typography>
+              <CardContent sx={{ minWidth: 0 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                  <Typography fontWeight={700} variant="h6" sx={{ flex: '1 1 auto', minWidth: 0, wordBreak: 'break-word' }}>{p.name}</Typography>
                   {canWrite && (
-                    <Box>
-                      <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                      {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
+                    <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                      <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)} sx={{ p: 1 }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                      {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p.id)} sx={{ p: 1 }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                     </Box>
                   )}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip label={p.status.replace('_', ' ')} color={STATUS_COLOR[p.status]} size="small" />
-                  <Chip label={p.priority} color={PRIORITY_COLOR[p.priority]} size="small" variant="outlined" />
+                  <Chip label={p.status.replace('_', ' ')} color={STATUS_COLOR[p.status]} size="small" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />
+                  <Chip label={p.priority} color={PRIORITY_COLOR[p.priority]} size="small" variant="outlined" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />
                 </Box>
                 {p.description && <Typography variant="body2" color="text.secondary" mb={2} sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.description}</Typography>}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 'auto' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mt: 'auto' }}>
                   <Typography variant="caption" color="text.secondary">Budget: ${(p.budget_total || 0).toLocaleString()}</Typography>
                   <Typography variant="caption" color="text.secondary">{p.owner_name || '—'}</Typography>
                 </Box>
@@ -114,12 +114,12 @@ export default function Projects() {
         ))}
       </Grid>
 
-      <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={closeDialog} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>{editing ? 'Edit Project' : 'New Project'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Project Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth multiline rows={3} />
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField select label="Status" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} fullWidth>
               {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
             </TextField>
@@ -127,13 +127,13 @@ export default function Projects() {
               {PRIORITIES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
             </TextField>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField label="Start Date" type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
             <TextField label="End Date" type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
           </Box>
           <TextField label="Total Budget ($)" type="number" value={form.budget_total} onChange={e => setForm(f => ({ ...f, budget_total: e.target.value }))} fullWidth />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button onClick={closeDialog}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.name.trim()}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>

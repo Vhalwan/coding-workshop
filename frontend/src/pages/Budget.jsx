@@ -66,14 +66,14 @@ export default function Budget() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>Budget Tracking</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField select size="small" label="Project" value={filterProject} onChange={e => setFilterProject(e.target.value)} sx={{ minWidth: 180 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField select size="small" label="Project" value={filterProject} onChange={e => setFilterProject(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 180 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
             <MenuItem value="">All Projects</MenuItem>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }}>Add Entry</Button>}
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }} sx={{ flexShrink: 0 }}>Add Entry</Button>}
         </Box>
       </Box>
 
@@ -82,11 +82,11 @@ export default function Budget() {
       {summary.length > 0 && (
         <Grid container spacing={3} mb={4}>
           {summary.map(s => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={s.project_id}>
-              <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
-                <CardContent>
-                  <Typography fontWeight={600} mb={1}>{s.project_name || projectName(s.project_id)}</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+            <Grid size={{ xs: 12, md: 6, xl: 4 }} key={s.project_id}>
+              <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
+                <CardContent sx={{ minWidth: 0 }}>
+                  <Typography fontWeight={600} mb={1} sx={{ wordBreak: 'break-word' }}>{s.project_name || projectName(s.project_id)}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
                     <Typography variant="body2">Budget: <b>${s.total_budget.toLocaleString()}</b></Typography>
                     <Typography variant="body2">Spent: <b>${s.total_spent.toLocaleString()}</b></Typography>
                   </Box>
@@ -101,8 +101,8 @@ export default function Budget() {
         </Grid>
       )}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2 }}>
-        <Table>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 700 }}>
           <TableHead sx={{ bgcolor: '#f0f4f8' }}>
             <TableRow>
               <TableCell>Date</TableCell>
@@ -139,13 +139,13 @@ export default function Budget() {
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>Add Budget Entry</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField select label="Project *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} fullWidth autoFocus>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField select label="Type" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} fullWidth>
               <MenuItem value="budget">Budget (allocation)</MenuItem>
               <MenuItem value="expense">Expense (spend)</MenuItem>
@@ -158,7 +158,7 @@ export default function Budget() {
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth />
           <TextField label="Date" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.project_id || !form.category || !form.amount}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>

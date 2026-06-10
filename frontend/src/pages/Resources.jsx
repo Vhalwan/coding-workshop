@@ -117,9 +117,9 @@ export default function Resources() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>Resources</Typography>
-        {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Resource</Button>}
+        {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Resource</Button>}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -130,36 +130,36 @@ export default function Resources() {
           const pct = Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100);
           const over = r.allocated_hours > r.capacity_hours_per_week;
           return (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.id}>
-              <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Box>
-                      <Typography fontWeight={700}>{r.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">{r.email}</Typography>
+            <Grid size={{ xs: 12, md: 6, xl: 4 }} key={r.id}>
+              <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
+                <CardContent sx={{ minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                    <Box sx={{ minWidth: 0, flex: '1 1 auto' }}>
+                      <Typography fontWeight={700} sx={{ wordBreak: 'break-word' }}>{r.name}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>{r.email}</Typography>
                     </Box>
-                    <Box>
-                      <Tooltip title="Manage allocations"><IconButton size="small" onClick={() => openAllocations(r)}><EventNoteIcon fontSize="small" /></IconButton></Tooltip>
+                    <Box sx={{ display: 'flex', flexShrink: 0, alignItems: 'center' }}>
+                      <Tooltip title="Manage allocations"><IconButton size="small" onClick={() => openAllocations(r)} sx={{ p: 1 }}><EventNoteIcon fontSize="small" /></IconButton></Tooltip>
                       {canWrite && (
                         <>
-                          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(r)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                          {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
+                          <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(r)} sx={{ p: 1 }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                          {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(r.id)} sx={{ p: 1 }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                         </>
                       )}
                     </Box>
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                    {r.role && <Chip label={r.role} size="small" variant="outlined" />}
-                    {r.department && <Chip label={r.department} size="small" />}
+                    {r.role && <Chip label={r.role} size="small" variant="outlined" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />}
+                    {r.department && <Chip label={r.department} size="small" sx={{ height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', py: 0.5 } }} />}
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
                     <Typography variant="caption">Allocation</Typography>
-                    <Typography variant="caption" color={over ? 'error.main' : 'text.secondary'}>
+                    <Typography variant="caption" color={over ? 'error.main' : 'text.secondary'} sx={{ textAlign: 'right' }}>
                       {r.allocated_hours}/{r.capacity_hours_per_week}h/week {over && '⚠ Over'}
                     </Typography>
                   </Box>
-                  <LinearProgress variant="determinate" value={pct} color={over ? 'error' : 'success'} sx={{ borderRadius: 1 }} />
+                  <LinearProgress variant="determinate" value={pct} color={over ? 'error' : 'success'} sx={{ borderRadius: 1, height: 8 }} />
                 </CardContent>
               </Card>
             </Grid>
@@ -167,7 +167,7 @@ export default function Resources() {
         })}
       </Grid>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>{editing ? 'Edit Resource' : 'Add Resource'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Full Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
@@ -176,13 +176,13 @@ export default function Resources() {
           <TextField label="Department" value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} fullWidth />
           <TextField label="Capacity (hours/week)" type="number" value={form.capacity_hours_per_week} onChange={e => setForm(f => ({ ...f, capacity_hours_per_week: Number(e.target.value) }))} fullWidth />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.name.trim() || !form.email.trim()}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={allocOpen} onClose={() => setAllocOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={allocOpen} onClose={() => setAllocOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>
           Allocations — {allocResource?.name}
           <Typography variant="body2" color={dialogAvailable < 0 ? 'error.main' : 'text.secondary'}>
@@ -232,7 +232,7 @@ export default function Resources() {
                       error={wouldOverallocate}
                       helperText={wouldOverallocate ? `Exceeds available capacity (${dialogAvailable}h)` : ''}
                     />
-                    <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                       <TextField label="Start date" type="date" value={allocForm.start_date} onChange={e => setAllocForm(f => ({ ...f, start_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
                       <TextField label="End date" type="date" value={allocForm.end_date} onChange={e => setAllocForm(f => ({ ...f, end_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
                     </Box>
@@ -242,7 +242,7 @@ export default function Resources() {
             </>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button onClick={() => setAllocOpen(false)}>Close</Button>
           {canWrite && (
             <Button

@@ -73,25 +73,25 @@ export default function Deliverables() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>Deliverables</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField select size="small" label="Project" value={filterProject} onChange={e => setFilterProject(e.target.value)} sx={{ minWidth: 160 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField select size="small" label="Project" value={filterProject} onChange={e => setFilterProject(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 160 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
             <MenuItem value="">All Projects</MenuItem>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
-          <TextField select size="small" label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} sx={{ minWidth: 130 }}>
+          <TextField select size="small" label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} sx={{ minWidth: { xs: '100%', sm: 130 }, flex: { xs: '1 1 100%', sm: '0 1 auto' } }}>
             <MenuItem value="">All</MenuItem>
             {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
           </TextField>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Deliverable</Button>}
+          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Deliverable</Button>}
         </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2 }}>
-        <Table>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 720 }}>
           <TableHead sx={{ bgcolor: '#f0f4f8' }}>
             <TableRow>
               <TableCell fontWeight={600}>Name</TableCell>
@@ -125,7 +125,7 @@ export default function Deliverables() {
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>{editing ? 'Edit Deliverable' : 'New Deliverable'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
@@ -133,7 +133,7 @@ export default function Deliverables() {
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
           <TextField label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} fullWidth multiline rows={2} />
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField select label="Status" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} fullWidth>
               {STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
             </TextField>
@@ -144,7 +144,7 @@ export default function Deliverables() {
           <TextField label="Assignee Name" value={form.assignee_name} onChange={e => setForm(f => ({ ...f, assignee_name: e.target.value }))} fullWidth />
           <TextField label="Due Date" type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, pb: 2 }}>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={save} disabled={saving || !form.name.trim() || !form.project_id}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
