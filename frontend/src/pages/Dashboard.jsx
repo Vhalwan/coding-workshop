@@ -65,22 +65,25 @@ export default function Dashboard() {
       <Typography variant="h5" fontWeight={700} mb={3}>Dashboard</Typography>
       {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Grid container spacing={3} mb={4}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard title="Total Projects" value={projects.length} icon={<FolderIcon fontSize="inherit" />} color="primary.main" onClick={() => navigate('/projects')} />
+      <Box sx={{ mb: 4 }}>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard title="Total Projects" value={projects.length} icon={<FolderIcon fontSize="inherit" />} color="primary.main" onClick={() => navigate('/projects')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard title="At Risk" value={atRisk} icon={<WarningIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/projects')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard title="Deliverables Done" value={`${completedDeliverables}/${deliverables.length}`} icon={<CheckCircleIcon fontSize="inherit" />} color="success.main" onClick={() => navigate('/deliverables')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard title="Over-allocated" value={overAllocated} icon={<PeopleIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/resources')} />
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard title="At Risk" value={atRisk} icon={<WarningIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/projects')} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard title="Deliverables Done" value={`${completedDeliverables}/${deliverables.length}`} icon={<CheckCircleIcon fontSize="inherit" />} color="success.main" onClick={() => navigate('/deliverables')} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard title="Over-allocated" value={overAllocated} icon={<PeopleIcon fontSize="inherit" />} color="error.main" onClick={() => navigate('/resources')} />
-        </Grid>
-      </Grid>
+      </Box>
 
-      <Grid container spacing={3}>
+      <Box sx={{ pt: 2 }}>
+        <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent>
@@ -164,7 +167,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 }
