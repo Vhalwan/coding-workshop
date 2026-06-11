@@ -5,9 +5,29 @@ import FolderIcon from '@mui/icons-material/Folder';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PeopleIcon from '@mui/icons-material/People';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { projectsApi, deliverablesApi, resourcesApi, budgetApi } from '../services/api';
 
 const STATUS_COLOR = { active: 'primary', at_risk: 'error', on_hold: 'warning', completed: 'success', cancelled: 'default' };
+
+function formatYAxisTick(value) {
+  if (value === 0) return '$0k';
+  if (value >= 1000) return `$${value / 1000}k`;
+  return `$${value}`;
+}
+
+function BudgetChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const budget = payload.find(p => p.dataKey === 'budget')?.value ?? 0;
+  const spent = payload.find(p => p.dataKey === 'spent')?.value ?? 0;
+  return (
+    <Box sx={{ bgcolor: 'background.paper', p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, boxShadow: 2 }}>
+      <Typography variant="body2" fontWeight={600} mb={0.5}>{label}</Typography>
+      <Typography variant="body2" sx={{ color: '#1976d2' }}>Budget: ${budget.toLocaleString()}</Typography>
+      <Typography variant="body2" sx={{ color: '#d32f2f' }}>Spent: ${spent.toLocaleString()}</Typography>
+    </Box>
+  );
+}
 
 function StatCard({ title, value, icon, color, onClick }) {
   return (
@@ -30,6 +50,7 @@ export default function Dashboard() {
   const [deliverables, setDeliverables] = useState([]);
   const [resources, setResources] = useState([]);
   const [budgetSummary, setBudgetSummary] = useState([]);
+  const [budgetEntries, setBudgetEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -40,7 +61,8 @@ export default function Dashboard() {
       deliverablesApi.getAll(),
       resourcesApi.getAll(),
       budgetApi.getSummary(),
-    ]).then(([projectsRes, deliverablesRes, resourcesRes, budgetRes]) => {
+      budgetApi.getAll(),
+    ]).then(([projectsRes, deliverablesRes, resourcesRes, budgetSummaryRes, budgetEntriesRes]) => {
       const errors = [];
       if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.projects || []);
       else errors.push(`Projects: ${projectsRes.reason?.message}`);
@@ -48,8 +70,10 @@ export default function Dashboard() {
       else errors.push(`Deliverables: ${deliverablesRes.reason?.message}`);
       if (resourcesRes.status === 'fulfilled') setResources(resourcesRes.value.resources || []);
       else errors.push(`Resources: ${resourcesRes.reason?.message}`);
-      if (budgetRes.status === 'fulfilled') setBudgetSummary(budgetRes.value.summary || []);
-      else errors.push(`Budget: ${budgetRes.reason?.message}`);
+      if (budgetSummaryRes.status === 'fulfilled') setBudgetSummary(budgetSummaryRes.value.summary || []);
+      else errors.push(`Budget summary: ${budgetSummaryRes.reason?.message}`);
+      if (budgetEntriesRes.status === 'fulfilled') setBudgetEntries(budgetEntriesRes.value.entries || []);
+      else errors.push(`Budget entries: ${budgetEntriesRes.reason?.message}`);
       if (errors.length) setError(errors.join(' · '));
     }).finally(() => setLoading(false));
   }, []);
@@ -59,6 +83,17 @@ export default function Dashboard() {
   const atRisk = projects.filter(p => p.status === 'at_risk').length;
   const overAllocated = resources.filter(r => r.allocated_hours > r.capacity_hours_per_week).length;
   const completedDeliverables = deliverables.filter(d => d.status === 'completed').length;
+  const spentByProject = budgetEntries
+    .filter(e => e.type === 'expense')
+    .reduce((acc, e) => {
+      acc[e.project_id] = (acc[e.project_id] || 0) + (e.amount || 0);
+      return acc;
+    }, {});
+  const budgetChartData = projects.map(p => ({
+    name: p.name,
+    budget: p.budget_total || 0,
+    spent: spentByProject[p.id] || 0,
+  }));
 
   return (
     <Box>
@@ -167,6 +202,35 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ pt: 2 }}>
+        <Grid container spacing={3}>
+          <Grid size={12}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} mb={2}>Budget vs Spent by Project</Typography>
+                {budgetChartData.length === 0 ? (
+                  <Typography color="text.secondary">No projects yet.</Typography>
+                ) : (
+                  <Box sx={{ width: '100%', height: 320 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={budgetChartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={budgetChartData.length > 4 ? -25 : 0} textAnchor={budgetChartData.length > 4 ? 'end' : 'middle'} height={budgetChartData.length > 4 ? 70 : 40} />
+                        <YAxis tickFormatter={formatYAxisTick} width={56} />
+                        <Tooltip content={<BudgetChartTooltip />} />
+                        <Legend />
+                        <Bar dataKey="budget" name="Budget" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="spent" name="Spent" fill="#d32f2f" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
     </Box>
