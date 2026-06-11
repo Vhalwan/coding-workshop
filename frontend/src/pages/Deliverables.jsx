@@ -278,7 +278,7 @@ export default function Deliverables() {
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>{editing ? 'Edit Deliverable' : 'New Deliverable'}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'visible', '.MuiDialogTitle-root + &': { pt: 2 } }}>
           <TextField label="Name *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} fullWidth autoFocus />
           <TextField select label="Project *" value={form.project_id} onChange={e => {
             const project_id = e.target.value;

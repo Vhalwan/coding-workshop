@@ -202,13 +202,13 @@ export default function Budget() {
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 2 }, width: { xs: 'calc(100% - 16px)', sm: 'auto' }, maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' } } }}>
         <DialogTitle>Add Budget Entry</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'visible', '.MuiDialogTitle-root + &': { pt: 2 } }}>
           <TextField select label="Project *" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} fullWidth autoFocus>
             {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField select label="Type" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} fullWidth>
-              <MenuItem value="budget">Budget (allocation)</MenuItem>
+              <MenuItem value="budget">Budget Allocation</MenuItem>
               <MenuItem value="expense">Expense (spend)</MenuItem>
             </TextField>
             <TextField select label="Category *" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} fullWidth>
