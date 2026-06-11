@@ -5,12 +5,15 @@ import { useAuth } from '../services/AuthContext';
 
 export default function Login() {
   const [tab, setTab] = useState(0);
-  const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'viewer' });
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ email: '', password: '', full_name: '', role: 'viewer' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
+  const form = tab === 0 ? loginForm : registerForm;
+  const setForm = tab === 0 ? setLoginForm : setRegisterForm;
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e) => {
@@ -19,9 +22,9 @@ export default function Login() {
     setLoading(true);
     try {
       if (tab === 0) {
-        await login(form.email, form.password);
+        await login(loginForm.email, loginForm.password);
       } else {
-        await register(form);
+        await register(registerForm);
       }
       navigate('/');
     } catch (err) {
@@ -44,12 +47,12 @@ export default function Login() {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <form onSubmit={submit}>
             {tab === 1 && (
-              <TextField fullWidth label="Full Name" value={form.full_name} onChange={set('full_name')} sx={{ mb: 2 }} required />
+              <TextField fullWidth label="Full Name" value={registerForm.full_name} onChange={set('full_name')} sx={{ mb: 2 }} required />
             )}
             <TextField fullWidth label="Email" type="email" value={form.email} onChange={set('email')} sx={{ mb: 2 }} required />
             <TextField fullWidth label="Password" type="password" value={form.password} onChange={set('password')} sx={{ mb: 2 }} required />
             {tab === 1 && (
-              <TextField fullWidth select label="Role" value={form.role} onChange={set('role')} sx={{ mb: 2 }}>
+              <TextField fullWidth select label="Role" value={registerForm.role} onChange={set('role')} sx={{ mb: 2 }}>
                 <MenuItem value="admin">Admin</MenuItem>
                 <MenuItem value="manager">Manager</MenuItem>
                 <MenuItem value="viewer">Viewer</MenuItem>
