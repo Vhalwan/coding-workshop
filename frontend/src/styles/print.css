@@ -1,0 +1,160 @@
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 1.5cm;
+  }
+
+  body {
+    background: white !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .layout-appbar,
+  .layout-sidebar {
+    display: none !important;
+  }
+
+  .layout-main {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    background: white !important;
+  }
+
+  .MuiDialog-root,
+  .MuiModal-root,
+  .MuiBackdrop-root {
+    display: none !important;
+  }
+
+  .screen-only-content {
+    display: none !important;
+  }
+
+  .print-report-header {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #000;
+  }
+
+  .print-report-header .MuiTypography-root {
+    color: #000 !important;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11pt;
+    page-break-inside: auto;
+  }
+
+  .print-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #333;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+    color: #000 !important;
+  }
+
+  .print-table th {
+    background: #eee !important;
+    font-weight: 700;
+  }
+
+  .print-status {
+    display: inline-block;
+    border: 1px solid #333;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10pt;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+
+  .print-progress {
+    height: 10px;
+    border: 1px solid #333;
+    background: #fff;
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 80px;
+  }
+
+  .print-progress-bar {
+    height: 100%;
+    background: #555 !important;
+  }
+
+  .print-summary-section {
+    display: block !important;
+    margin-bottom: 24px;
+  }
+
+  .print-summary-section .MuiCard-root {
+    box-shadow: none !important;
+    border: 1px solid #333 !important;
+    border-radius: 4px !important;
+    break-inside: avoid;
+  }
+
+  .print-summary-section .MuiTypography-root {
+    color: #000 !important;
+  }
+
+  .print-summary-section .MuiLinearProgress-root {
+    border: 1px solid #333;
+    background: #fff !important;
+  }
+
+  .print-summary-section .MuiLinearProgress-bar {
+    background: #555 !important;
+  }
+
+  .print-data-table .MuiPaper-root {
+    box-shadow: none !important;
+    border: 1px solid #333;
+    border-radius: 0 !important;
+  }
+
+  .print-data-table .MuiTableHead-root {
+    background: #eee !important;
+  }
+
+  .print-data-table .MuiTableCell-root {
+    color: #000 !important;
+    border-color: #333 !important;
+  }
+
+  .print-data-table .MuiChip-root {
+    border: 1px solid #333 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .print-data-table .MuiChip-colorSuccess,
+  .print-data-table .MuiChip-colorError,
+  .print-data-table .MuiChip-colorPrimary,
+  .print-data-table .MuiChip-colorWarning {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

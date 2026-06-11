@@ -9,6 +9,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import { budgetApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
+import { downloadCsv } from '../utils/exportCsv';
+import PrintReportHeader from '../components/PrintReportHeader';
+import ExportMenu from '../components/ExportMenu';
 
 const CATEGORIES = ['Personnel', 'Infrastructure', 'Software', 'Hardware', 'Training', 'Travel', 'Consulting', 'Other'];
 const EMPTY = { project_id: '', category: '', description: '', amount: '', type: 'expense', date: new Date().toISOString().split('T')[0] };
@@ -72,14 +75,37 @@ export default function Budget() {
       )
     : entries;
 
+  const exportCsv = () => {
+    downloadCsv(
+      'budget',
+      ['Date', 'Project', 'Category', 'Type', 'Amount', 'Description'],
+      filteredEntries.map(e => [
+        e.date,
+        e.project_name || projectName(e.project_id),
+        e.category,
+        e.type,
+        e.amount,
+        e.description || '',
+      ])
+    );
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
+      <Box className="no-print" sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <Typography variant="h5" fontWeight={700}>Budget Tracking</Typography>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }} sx={{ flexShrink: 0 }}>Add Entry</Button>}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
+            <ExportMenu
+              onExportCsv={exportCsv}
+              onExportPdf={() => window.print()}
+              csvDisabled={filteredEntries.length === 0}
+              pdfDisabled={filteredEntries.length === 0 && summary.length === 0}
+            />
+            {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setForm(EMPTY); setOpen(true); }}>Add Entry</Button>}
+          </Box>
         </Box>
         <TextField
           size="small"
@@ -106,10 +132,12 @@ export default function Budget() {
         </TextField>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert severity="error" className="no-print" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+      <PrintReportHeader title="Budget Tracking" />
 
       {summary.length > 0 && (
-        <Grid container spacing={3} mb={4}>
+        <Grid container spacing={3} mb={4} className="print-summary-section">
           {summary.map(s => (
             <Grid size={{ xs: 12, md: 6, xl: 4 }} key={s.project_id}>
               <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
@@ -130,7 +158,7 @@ export default function Budget() {
         </Grid>
       )}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
+      <TableContainer component={Paper} className="print-data-table" sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
         <Table sx={{ minWidth: 700 }}>
           <TableHead sx={{ bgcolor: '#f0f4f8' }}>
             <TableRow>
@@ -140,13 +168,13 @@ export default function Budget() {
               <TableCell>Description</TableCell>
               <TableCell>Type</TableCell>
               <TableCell align="right">Amount</TableCell>
-              {canDelete && <TableCell align="right">Actions</TableCell>}
+              {canDelete && <TableCell align="right" className="no-print">Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredEntries.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canDelete ? 7 : 6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={canDelete ? 7 : 6} align="center" sx={{ py: 4, color: 'text.secondary' }} className="no-print">
                   {query ? 'No budget entries match your search' : 'No budget entries yet.'}
                 </TableCell>
               </TableRow>
@@ -162,7 +190,7 @@ export default function Budget() {
                   {e.type === 'expense' ? '-' : '+'}${e.amount.toLocaleString()}
                 </TableCell>
                 {canDelete && (
-                  <TableCell align="right">
+                  <TableCell align="right" className="no-print">
                     <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(e.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                   </TableCell>
                 )}

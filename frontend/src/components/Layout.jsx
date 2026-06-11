@@ -65,7 +65,7 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <AppBar position="fixed" sx={{ zIndex: theme => theme.zIndex.drawer + 1, bgcolor: '#1a237e' }}>
+      <AppBar position="fixed" className="layout-appbar no-print" sx={{ zIndex: theme => theme.zIndex.drawer + 1, bgcolor: '#1a237e' }}>
         <Toolbar sx={{ gap: 1, minHeight: { xs: 56, sm: 64 } }}>
           {!isDesktop && (
             <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(o => !o)} aria-label="Open navigation">
@@ -85,7 +85,7 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: isDesktop ? DRAWER_WIDTH : 0, flexShrink: isDesktop ? 0 : undefined }}>
+      <Box component="nav" className="layout-sidebar no-print" sx={{ width: isDesktop ? DRAWER_WIDTH : 0, flexShrink: isDesktop ? 0 : undefined }}>
         {!isDesktop && (
           <Drawer
             variant="temporary"
@@ -110,6 +110,7 @@ export default function Layout() {
 
       <Box
         component="main"
+        className="layout-main"
         sx={{
           flexGrow: 1,
           minWidth: 0,

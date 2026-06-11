@@ -11,6 +11,9 @@ import ClearIcon from '@mui/icons-material/Clear';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
+import { downloadCsv } from '../utils/exportCsv';
+import PrintReportHeader from '../components/PrintReportHeader';
+import ExportMenu from '../components/ExportMenu';
 
 const STATUSES = ['active', 'at_risk', 'on_hold', 'completed', 'cancelled'];
 const PRIORITIES = ['low', 'medium', 'high', 'critical'];
@@ -81,14 +84,39 @@ export default function Projects() {
       )
     : projects;
 
+  const exportCsv = () => {
+    downloadCsv(
+      'projects',
+      ['Name', 'Status', 'Priority', 'Budget', 'Spent', 'Start Date', 'End Date', 'Owner'],
+      filteredProjects.map(p => [
+        p.name,
+        p.status.replace('_', ' '),
+        p.priority,
+        p.budget_total || 0,
+        p.budget_spent || 0,
+        p.start_date || '',
+        p.end_date || '',
+        p.owner_name || '',
+      ])
+    );
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
+      <Box className="no-print" sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <Typography variant="h5" fontWeight={700}>Projects</Typography>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>New Project</Button>}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
+            <ExportMenu
+              onExportCsv={exportCsv}
+              onExportPdf={() => window.print()}
+              csvDisabled={filteredProjects.length === 0}
+              pdfDisabled={filteredProjects.length === 0}
+            />
+            {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>New Project</Button>}
+          </Box>
         </Box>
         <TextField
           size="small"
@@ -115,15 +143,58 @@ export default function Projects() {
         </TextField>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert severity="error" className="no-print" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+      <PrintReportHeader title="Projects" />
 
       {filteredProjects.length === 0 && (
-        <Typography color="text.secondary">
+        <Typography color="text.secondary" className="no-print">
           {query ? 'No projects match your search' : 'No projects found. Create your first project!'}
         </Typography>
       )}
 
-      <Grid container spacing={3}>
+      <Box className="print-only">
+        <table className="print-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Budget</th>
+              <th>Spent</th>
+              <th>Progress</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.map(p => {
+              const pct = p.budget_total > 0 ? Math.min(100, ((p.budget_spent || 0) / p.budget_total) * 100) : 0;
+              return (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td><span className="print-status">{p.status.replace('_', ' ')}</span></td>
+                  <td><span className="print-status">{p.priority}</span></td>
+                  <td>${(p.budget_total || 0).toLocaleString()}</td>
+                  <td>${(p.budget_spent || 0).toLocaleString()}</td>
+                  <td>
+                    <div className="print-progress">
+                      <div className="print-progress-bar" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span style={{ fontSize: '10pt' }}>{pct.toFixed(0)}%</span>
+                  </td>
+                  <td>{p.start_date || '—'}</td>
+                  <td>{p.end_date || '—'}</td>
+                  <td>{p.owner_name || '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Box>
+
+      <Grid container spacing={3} className="screen-only-content">
         {filteredProjects.map(p => (
           <Grid size={gridSize} key={p.id}>
             <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
@@ -131,7 +202,7 @@ export default function Projects() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 1 }}>
                   <Typography fontWeight={700} variant="h6" sx={{ flex: '1 1 auto', minWidth: 0, wordBreak: 'break-word' }}>{p.name}</Typography>
                   {canWrite && (
-                    <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                    <Box className="no-print" sx={{ display: 'flex', flexShrink: 0 }}>
                       <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)} sx={{ p: 1 }}><EditIcon fontSize="small" /></IconButton></Tooltip>
                       {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p.id)} sx={{ p: 1 }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                     </Box>

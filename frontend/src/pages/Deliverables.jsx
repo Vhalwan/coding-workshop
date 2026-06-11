@@ -11,6 +11,9 @@ import ClearIcon from '@mui/icons-material/Clear';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { deliverablesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
+import { downloadCsv } from '../utils/exportCsv';
+import PrintReportHeader from '../components/PrintReportHeader';
+import ExportMenu from '../components/ExportMenu';
 
 const STATUSES = ['pending', 'in_progress', 'completed', 'blocked'];
 const PRIORITIES = ['low', 'medium', 'high', 'critical'];
@@ -122,14 +125,38 @@ export default function Deliverables() {
       )
     : items;
 
+  const exportCsv = () => {
+    downloadCsv(
+      'deliverables',
+      ['Name', 'Project', 'Status', 'Priority', 'Assignee', 'Due Date', 'Dependencies'],
+      filteredItems.map(d => [
+        d.name,
+        projectName(d.project_id),
+        d.status.replace('_', ' '),
+        d.priority,
+        d.assignee_name || '',
+        d.due_date || '',
+        (d.dependencies || []).map(dep => dep.name).join('; '),
+      ])
+    );
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
+      <Box className="no-print" sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <Typography variant="h5" fontWeight={700}>Deliverables</Typography>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Deliverable</Button>}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
+            <ExportMenu
+              onExportCsv={exportCsv}
+              onExportPdf={() => window.print()}
+              csvDisabled={filteredItems.length === 0}
+              pdfDisabled={filteredItems.length === 0}
+            />
+            {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Deliverable</Button>}
+          </Box>
         </Box>
         <TextField
           size="small"
@@ -164,7 +191,38 @@ export default function Deliverables() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
+      <PrintReportHeader title="Deliverables" />
+
+      <Box className="print-only">
+        <table className="print-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Project</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Assignee</th>
+              <th>Due Date</th>
+              <th>Dependencies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map(d => (
+              <tr key={d.id}>
+                <td>{d.name}</td>
+                <td>{projectName(d.project_id)}</td>
+                <td><span className="print-status">{d.status.replace('_', ' ')}</span></td>
+                <td><span className="print-status">{d.priority}</span></td>
+                <td>{d.assignee_name || '—'}</td>
+                <td>{d.due_date || '—'}</td>
+                <td>{(d.dependencies || []).map(dep => dep.name).join('; ') || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Box>
+
+      <TableContainer component={Paper} className="screen-only-content" sx={{ borderRadius: 3, boxShadow: 2, overflowX: 'auto' }}>
         <Table sx={{ minWidth: 720 }}>
           <TableHead sx={{ bgcolor: '#f0f4f8' }}>
             <TableRow>
@@ -175,7 +233,7 @@ export default function Deliverables() {
               <TableCell>Priority</TableCell>
               <TableCell>Assignee</TableCell>
               <TableCell>Due Date</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell align="right" className="no-print">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -208,7 +266,7 @@ export default function Deliverables() {
                 <TableCell><Chip label={d.priority} size="small" variant="outlined" /></TableCell>
                 <TableCell>{d.assignee_name || '—'}</TableCell>
                 <TableCell>{d.due_date || '—'}</TableCell>
-                <TableCell align="right">
+                <TableCell align="right" className="no-print">
                   {canWrite && <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(d)}><EditIcon fontSize="small" /></IconButton></Tooltip>}
                   {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(d.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>}
                 </TableCell>

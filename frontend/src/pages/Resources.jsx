@@ -12,6 +12,9 @@ import ClearIcon from '@mui/icons-material/Clear';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { resourcesApi, projectsApi } from '../services/api';
 import { useAuth } from '../services/AuthContext';
+import { downloadCsv } from '../utils/exportCsv';
+import PrintReportHeader from '../components/PrintReportHeader';
+import ExportMenu from '../components/ExportMenu';
 
 const EMPTY = { name: '', email: '', role: '', department: '', capacity_hours_per_week: 40 };
 const EMPTY_ALLOC = { project_id: '', hours_per_week: '', start_date: '', end_date: '' };
@@ -128,6 +131,22 @@ export default function Resources() {
       )
     : resources;
 
+  const exportCsv = () => {
+    downloadCsv(
+      'resources',
+      ['Name', 'Email', 'Role', 'Department', 'Capacity Hours', 'Allocated Hours', 'Available Hours'],
+      filteredResources.map(r => [
+        r.name,
+        r.email,
+        r.role || '',
+        r.department || '',
+        r.capacity_hours_per_week,
+        r.allocated_hours,
+        r.available_hours ?? Math.max(0, r.capacity_hours_per_week - r.allocated_hours),
+      ])
+    );
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
 
   const dialogCapacity = allocResource?.capacity_hours_per_week || 0;
@@ -142,10 +161,18 @@ export default function Resources() {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
+      <Box className="no-print" sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <Typography variant="h5" fontWeight={700}>Resources</Typography>
-          {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate} sx={{ flexShrink: 0 }}>Add Resource</Button>}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
+            <ExportMenu
+              onExportCsv={exportCsv}
+              onExportPdf={() => window.print()}
+              csvDisabled={filteredResources.length === 0}
+              pdfDisabled={filteredResources.length === 0}
+            />
+            {canWrite && <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Add Resource</Button>}
+          </Box>
         </Box>
         <TextField
           size="small"
@@ -167,14 +194,45 @@ export default function Resources() {
         />
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert severity="error" className="no-print" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {filteredResources.length === 0 && (
-        <Typography color="text.secondary">
+        <Typography color="text.secondary" className="no-print">
           {query ? 'No resources match your search' : 'No resources yet. Add team members!'}
         </Typography>
       )}
 
-      <Grid container spacing={3}>
+      <PrintReportHeader title="Resources" />
+
+      <Box className="print-only">
+        <table className="print-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Department</th>
+              <th>Capacity Hours</th>
+              <th>Allocated Hours</th>
+              <th>Available Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredResources.map(r => (
+              <tr key={r.id}>
+                <td>{r.name}</td>
+                <td>{r.email}</td>
+                <td>{r.role || '—'}</td>
+                <td>{r.department || '—'}</td>
+                <td>{r.capacity_hours_per_week}</td>
+                <td>{r.allocated_hours}</td>
+                <td>{r.available_hours ?? Math.max(0, r.capacity_hours_per_week - r.allocated_hours)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Box>
+
+      <Grid container spacing={3} className="screen-only-content">
         {filteredResources.map(r => {
           const pct = Math.min(100, (r.allocated_hours / r.capacity_hours_per_week) * 100);
           const over = r.allocated_hours > r.capacity_hours_per_week;
@@ -193,7 +251,7 @@ export default function Resources() {
                       <Typography fontWeight={700} sx={{ wordBreak: 'break-word' }}>{r.name}</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>{r.email}</Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', flexShrink: 0, alignItems: 'center' }}>
+                    <Box className="no-print" sx={{ display: 'flex', flexShrink: 0, alignItems: 'center' }}>
                       <Tooltip title="Manage allocations"><IconButton size="small" onClick={() => openAllocations(r)} sx={{ p: 1 }}><EventNoteIcon fontSize="small" /></IconButton></Tooltip>
                       {canWrite && (
                         <>
