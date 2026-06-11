@@ -138,23 +138,42 @@ export default function Budget() {
 
       {summary.length > 0 && (
         <Grid container spacing={3} mb={4} className="print-summary-section">
-          {summary.map(s => (
-            <Grid size={{ xs: 12, md: 6, xl: 4 }} key={s.project_id}>
-              <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
-                <CardContent sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={600} mb={1} sx={{ wordBreak: 'break-word' }}>{s.project_name || projectName(s.project_id)}</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
-                    <Typography variant="body2">Budget: <b>${s.total_budget.toLocaleString()}</b></Typography>
-                    <Typography variant="body2">Spent: <b>${s.total_spent.toLocaleString()}</b></Typography>
-                  </Box>
-                  <LinearProgress variant="determinate" value={s.total_budget > 0 ? Math.min(100, (s.total_spent / s.total_budget) * 100) : 0} color={s.remaining < 0 ? 'error' : 'primary'} sx={{ borderRadius: 1, mb: 1 }} />
-                  <Typography variant="body2" color={s.remaining < 0 ? 'error.main' : 'success.main'} fontWeight={600}>
-                    {s.remaining < 0 ? `Over by $${Math.abs(s.remaining).toLocaleString()}` : `$${s.remaining.toLocaleString()} remaining`}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+          {summary.map(s => {
+            const projectBudget = projects.find(p => p.id === s.project_id)?.budget_total || 0;
+            const expenses = s.total_spent;
+            const allocations = s.total_budget;
+            const remaining = projectBudget - expenses;
+            const expensesOverBudget = expenses > projectBudget;
+            const combinedOverBudget = expenses + allocations > projectBudget;
+            const progressColor = expensesOverBudget ? 'error' : combinedOverBudget ? 'warning' : 'primary';
+            return (
+              <Grid size={{ xs: 12, md: 6, xl: 4 }} key={s.project_id}>
+                <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
+                  <CardContent sx={{ minWidth: 0 }}>
+                    <Typography fontWeight={600} mb={1} sx={{ wordBreak: 'break-word' }}>{s.project_name || projectName(s.project_id)}</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                      <Typography variant="body2">Budget: <b>${projectBudget.toLocaleString()}</b></Typography>
+                      <Typography variant="body2">Spent: <b>${expenses.toLocaleString()}</b></Typography>
+                    </Box>
+                    <LinearProgress variant="determinate" value={projectBudget > 0 ? Math.min(100, (expenses / projectBudget) * 100) : 0} color={progressColor} sx={{ borderRadius: 1, mb: 1 }} />
+                    {expensesOverBudget ? (
+                      <Typography variant="body2" color="error.main" fontWeight={600}>
+                        Over by ${Math.abs(remaining).toLocaleString()}
+                      </Typography>
+                    ) : combinedOverBudget ? (
+                      <Typography variant="body2" color="warning.main" fontWeight={600}>
+                        Allocations and expenses exceed budget by ${(expenses + allocations - projectBudget).toLocaleString()}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="success.main" fontWeight={600}>
+                        ${remaining.toLocaleString()} remaining
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
         </Grid>
       )}
 
@@ -187,7 +206,7 @@ export default function Budget() {
                 <TableCell>{e.description || '—'}</TableCell>
                 <TableCell><Chip label={e.type} color={e.type === 'budget' ? 'success' : 'default'} size="small" /></TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600, color: e.type === 'expense' ? 'error.main' : 'success.main' }}>
-                  {e.type === 'expense' ? '-' : '+'}${e.amount.toLocaleString()}
+                  {e.type === 'expense' ? '-' : ''}${e.amount.toLocaleString()}
                 </TableCell>
                 {canDelete && (
                   <TableCell align="right" className="no-print">
